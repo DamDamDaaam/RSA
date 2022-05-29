@@ -33,9 +33,9 @@ module SevenSegmentDecoder (
             4'h7  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0001111 ;  //  7
             4'h8  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0000000 ;  //  8
             4'h9  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0000100 ;  //  9
-                                                                7
+                                                                
             4'ha  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1111110 ;  //  -
-                                                                7
+                                                                
             4'hb  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0011000 ;  //  F (key Found)
             4'hc  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0110001 ;  //  C (Crypting)
             4'hd  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1101010 ;  //  n (inserting N key)
