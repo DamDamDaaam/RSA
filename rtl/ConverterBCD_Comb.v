@@ -46,22 +46,22 @@ module ConverterBCD_Comb (
                 
                 //Connecting outputs from the last modules of all rows to converter outputs
                 if (si == 31) begin
-                    assign b1_out = bcd[4*bd - 3];
-                    assign b2_out = bcd[4*bd - 2];
-                    assign b3_out = bcd[4*bd - 1];
-                    assign b4_out = bcd[4*bd];
+                    assign bcd[4*bd - 3] = b1_out;
+                    assign bcd[4*bd - 2] = b2_out;
+                    assign bcd[4*bd - 1] = b3_out;
+                    assign bcd[4*bd    ] = b4_out;
                 end
                 
                 //AddThree module instance
-                AddThree (
-                    .in({b1_in, b2_in, b3_in, b4_in}),
-                    .out({b1_out, b2_out, b3_out, b4_out})
+                AddThree inst (
+                    .in({b4_in, b3_in, b2_in, b1_in}),
+                    .out({b4_out, b3_out, b2_out, b1_out})
                 );
                 
             end
         end
     endgenerate
     
-    assign b[9].s[30].b4_out = bcd[37]; //This converter output was left out in the loop
+    assign bcd[37] = b[9].s[30].b4_out; //This converter output was left out in the loop
     
 endmodule
