@@ -63,7 +63,7 @@ module SevenSegment_12_Digits (
                     end
                 4'd3    : begin
                     BCD_mux = BCD[15:12] ;
-                    d_point = 1'b1;
+                    d_point = 1'b0;
                     end
                 4'd4    : begin
                     BCD_mux = BCD[19:16] ;
@@ -75,7 +75,7 @@ module SevenSegment_12_Digits (
                     end
                 4'd6    : begin
                     BCD_mux = BCD[27:24] ;
-                    d_point = 1'b1;
+                    d_point = 1'b0;
                     end
                 4'd7    : begin
                     BCD_mux = BCD[31:28] ;
@@ -87,7 +87,7 @@ module SevenSegment_12_Digits (
                     end
                 4'd9    : begin
                     BCD_mux = BCD[39:36] ;
-                    d_point = 1'b1;
+                    d_point = 1'b0;
                     end
                 4'd10   : begin
                     BCD_mux =       4'ha ;        // stampa "-"
