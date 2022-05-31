@@ -17,7 +17,7 @@ module SevenSegmentDecoder (
     
     ) ;
     
-    assign DP <= dp;
+    assign DP = dp;
     
     always @(*) begin
     
@@ -36,7 +36,7 @@ module SevenSegmentDecoder (
                                                                 
             4'ha  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1111110 ;  //  -
                                                                 
-            4'hb  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0011000 ;  //  F (key Found)
+            4'hb  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0111000 ;  //  F (key Found)
             4'hc  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0110001 ;  //  C (Crypting)
             4'hd  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1101010 ;  //  n (inserting N key)
             4'he  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1000010 ;  //  d (inserting d key)
