@@ -1,8 +1,6 @@
 `timescale 1ns / 100ps
 
-module Euclid(
-
-);
+module tb_RSA;
 
 
 

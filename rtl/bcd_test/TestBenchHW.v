@@ -18,10 +18,32 @@ module TestBenchHW(
     
     );
     
-    reg [31:0] bin_val;
+    reg [39:0] bcd_val_in;
     reg [24:0] flag;
+    reg en;
     
-    always @(posedge(clk)) begin
+    CounterBCD_Ndigit #(.NDIGITS(10)) counter_bcd (
+        .clk(clk),
+        .rst(rst),
+        .en(en),
+        .BCD(bcd_val_in)
+    );
+    
+    always @(posedge clk) begin
+        if (increment)
+            en <= 1'b1;
+        else begin
+            if (button) begin
+                if (flag == 24'd0)
+                    en <= 1'b1;
+                else
+                    en <= 1'b0;
+                flag <= flag + 24'd1;
+            end
+        end
+    end
+    
+    /*always @(posedge(clk)) begin
         if(rst)
             bin_val = 32'd0;
         else begin
@@ -36,17 +58,22 @@ module TestBenchHW(
                     
                 end
         end
-    end
+    end*/
 
     
     wire [39:0] BCD_val;
+    wire [31:0] bin_val;
     
-    ConverterBCD_Comb (
+    ConverterBin_Comb bin2bcd(
+        .bcd(bcd_val_in),
+        .bin(bin_val)
+    );
+    
+    ConverterBCD_Comb bcd2bin(
         .bin(bin_val),
         .bcd(BCD_val)
     );
 
-    
     reg [3:0] show_mode;
     
     always @(*) begin
