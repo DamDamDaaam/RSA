@@ -3,10 +3,11 @@
 module tb_ROM;
 
     reg clk = 1'b0;
+    reg en = 1'b0;
     reg [12:0] addr = 13'b0;
-    wire data;
+    wire [15:0] data;
 
-    TestROM DUT (
+    TestROM_Manual DUT (
         .clk  (clk),
         .addr (addr),
         .data (data)
@@ -17,10 +18,13 @@ module tb_ROM;
     end
 
     always @(negedge clk) begin
-        addr = addr + 13'b1;
+        if (en) begin
+            addr = addr + 13'b1;
+        end
     end
     
     initial begin
+        #100 en = 1'b1;
         #1000 $finish;
     end
 
