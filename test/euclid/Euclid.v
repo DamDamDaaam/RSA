@@ -3,6 +3,8 @@
 //MACCHINA A STATI FINITI PER LA VERIFICA DEL VINCOLO
 //GCD(phi, rng_e) == 1
 
+//TODO migliorare efficienza: al momento un'operazione prende centinaia di colpi di clk
+
 module Euclid(
         input wire clk,
         input wire rst,
@@ -18,11 +20,11 @@ module Euclid(
     reg  [31:0] divisor_register  = 32'b0;  //registro di lavoro small
     reg  [31:0] dividend_register = 32'b0;  //registro di lavoro big
     wire [63:0] division_result;
-    wire quotient;
     wire remainder;
+    wire UNCONNECTED, UNCONNECTED_2;        //tready del divisore non necessari poichè la
+                                            //macchina attende il termine della divisione
     
     assign e_key = rng_e;
-    assign quotient  = division_result[63:32];
     assign remainder = division_result[31:0 ];
     
     /////////////////////////////
@@ -96,7 +98,7 @@ module Euclid(
                 if (division_done) begin  //Se la divisione è fatta
                     div_tvalid = 1'b0;    //disabilita il divisore; poi:
                 
-                    if (quotient == 1'b1) begin        //Se GCD == 1
+                    if (remainder == 1'b1) begin        //Se GCD == 1
                         should_redo = 1'b0;
                         valid       = 1'b1;            //allora la chiave è valida
                         next_state = DONE;             //quindi termina.
@@ -159,11 +161,11 @@ module Euclid(
         .aresetn (~rst),
         
         .s_axis_divisor_tvalid  (div_tvalid      ),
-        .s_axis_divisor_tready  (),                 //TODO capire cosa sono questi input
+        .s_axis_divisor_tready  (UNCONNECTED),
         .s_axis_divisor_tdata   (divisor_register),
         
         .s_axis_dividend_tvalid (div_tvalid       ),
-        .s_axis_dividend_tready (),
+        .s_axis_dividend_tready (UNCONNECTED_2),
         .s_axis_dividend_tdata  (dividend_register),
         
         .m_axis_dout_tvalid     (division_done  ),

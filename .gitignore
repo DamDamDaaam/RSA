@@ -5,3 +5,4 @@ usage_statistics*
 *.log
 .Xil
 Makefile
+cores/*/*
