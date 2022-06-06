@@ -172,4 +172,4 @@ module Euclid(
         .m_axis_dout_tdata      (division_result)
     );
     
-endmodule;
+endmodule
