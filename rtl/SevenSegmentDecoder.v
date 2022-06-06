@@ -36,10 +36,10 @@ module SevenSegmentDecoder (
                                                                 
             4'ha  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1111110 ;  //  -
                                                                 
-            4'hb  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0110000 ;  //  F (key Found)
+            4'hb  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1101010 ;  //  n (inserting N key)
             4'hc  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0110001 ;  //  C (Crypting)
-            4'hd  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1101010 ;  //  n (inserting N key)
-            4'he  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1000010 ;  //  d (inserting d key)
+            4'hd  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1000010 ;  //  d (inserting d key)
+            4'he  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b0110000 ;  //  E (show e key)
             4'hf  :  {segA, segB, segC, segD, segE, segF, segG} = 7'b1000001 ;  //  U (Uncrypting)
             
         endcase
