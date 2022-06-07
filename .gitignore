@@ -1,2 +1,8 @@
-
+token
+work
+usage_statistics*
+*.jou
 *.log
+.Xil
+Makefile
+cores/*/*
