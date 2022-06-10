@@ -18,7 +18,7 @@ module TestROM_Manual(
     end
     
     initial begin
-        $readmemh("/home/michele/rsa/test/rom/test_rom_data.hex", mem);
+        $readmemh("/home/michele/rsa/bin/primes_16bit.hex", mem);
     end
 
 endmodule
