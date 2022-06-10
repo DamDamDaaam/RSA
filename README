@@ -1,5 +1,4 @@
-# RSA
-
+    
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
             ~~ Implementazione di un encrypter-decrypter RSA ~~
             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
@@ -67,4 +66,3 @@ Descrizione delle mode:
         - premere DigitIncrement aggiunge 1 alla cifra selezionata (se si raggiunge il valore massimo si ricomincia da 0)
         Una volta inserito il valore della cifra più significativa premere un'ultima volta DigitSelection per confermare il valore.
         Se si preme Delete durante la scrittura la chiave selezionata viene posta al valore 0.
-

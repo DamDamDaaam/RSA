@@ -9,6 +9,9 @@ module SevenSegment_12_Digits (
     input  wire en,
     input  wire [ 3:0] mode,    // input della mode da stampare a video
     input  wire [39:0] BCD,     // input del numero da stampare a video
+    
+    input  wire typing,
+    input  wire [ 3:0] digit,
 
     output wire segA,
     output wire segB,
@@ -32,7 +35,7 @@ module SevenSegment_12_Digits (
 //    assign DP   = 1'b0;
     
 
-    reg [24:0] count = 'b0 ;                    // matchare lunghezza con count e forzare rollover a 12
+    reg [25:0] count = 'b0 ;                        // matchare lunghezza con count e forzare rollover a 12
     
     always @(posedge clk) begin
         count <= count + 'b1 ;
@@ -40,10 +43,12 @@ module SevenSegment_12_Digits (
     
     wire [3:0] refresh_slice ;
     
-    assign refresh_slice = count[20:17] ;       // vedi sopra
+    assign refresh_slice = count[20:17] ;           // vedi sopra
         
     reg [3:0] BCD_mux;
     reg d_point;
+    wire blink;
+    assign blink = count[25];
     
     always @(*) begin
         if(en) begin
@@ -51,55 +56,115 @@ module SevenSegment_12_Digits (
         
                 4'd0    : begin
                     BCD_mux = BCD[ 3: 0] ;
-                    d_point = 1'b1;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b1;
                     end
                 4'd1    : begin
                     BCD_mux = BCD[ 7: 4] ;
-                    d_point = 1'b1;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b1;
                     end
                 4'd2    : begin
                     BCD_mux = BCD[11: 8] ;
-                    d_point = 1'b1;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b1;
                     end
                 4'd3    : begin
                     BCD_mux = BCD[15:12] ;
-                    d_point = 1'b0;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b0;
                     end
                 4'd4    : begin
                     BCD_mux = BCD[19:16] ;
-                    d_point = 1'b1;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b1;
                     end
                 4'd5    : begin
                     BCD_mux = BCD[23:20] ;
-                    d_point = 1'b1;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b1;
                     end
                 4'd6    : begin
                     BCD_mux = BCD[27:24] ;
-                    d_point = 1'b0;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b0;
                     end
                 4'd7    : begin
                     BCD_mux = BCD[31:28] ;
-                    d_point = 1'b1;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b1;
                     end
                 4'd8    : begin
                     BCD_mux = BCD[35:32] ;
-                    d_point = 1'b1;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b1;
                     end
                 4'd9    : begin
                     BCD_mux = BCD[39:36] ;
-                    d_point = 1'b0;
+                    if(typing)
+                        if(refresh_slice == digit && blink)
+                            d_point = 1'b0;
+                        else
+                            d_point = 1'b1;
+                    else
+                        d_point = 1'b0;
                     end
                 4'd10   : begin
-                    BCD_mux =       4'ha ;        // stampa "-"
+                    BCD_mux =       4'ha ;          // stampa "-"
                     d_point = 1'b1;
                     end
                 4'd11   : begin
-                    BCD_mux =  mode[3:0] ;        // stampa il carattere di mode
+                    BCD_mux =  mode[3:0] ;          // stampa il carattere di mode
                     d_point = 1'b0;
                     end
                 
                 default : begin
-                    BCD_mux =        4'ha;        // stampa "-"
+                    BCD_mux = 4'ha;                 // stampa "-"
                     d_point = 1'b1;
                     end
     
@@ -108,12 +173,12 @@ module SevenSegment_12_Digits (
         else begin
             case( refresh_slice[3:0] )
                 4'd11   : begin
-                    BCD_mux =  mode[3:0] ;        // stampa il carattere di mode
+                    BCD_mux =  mode[3:0] ;          // stampa il carattere di mode
                     d_point = 1'b0;
                     end
                 
                 default : begin
-                    BCD_mux =        4'ha;        // stampa "-"
+                    BCD_mux = 4'ha;                 // stampa "-"
                     d_point = 1'b1;
                     end
     
