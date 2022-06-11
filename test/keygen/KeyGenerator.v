@@ -1,12 +1,14 @@
 `timescale 1ns / 100ps
 
 //Modulo che genera le tre chiavi n_key, e_key e d_key sequenzialmente
-//mantenendole valide per un ciclo di clock. è responsabilità del
+//mantenendole valide per un ciclo di clock; è responsabilità del
 //KeyManager registrare le chiavi nel momento in cui vengono generate
+//TODO scrivere un testbench
 
 module KeyGenerator (
     input wire clk,
     input wire rst,
+    input wire en,
     input wire start,
     
     output reg [31:0] n_key,
@@ -16,46 +18,70 @@ module KeyGenerator (
     output reg n_key_valid,
     output reg e_key_valid,
     output reg d_key_valid,
-    output reg busy
+    output reg busy         //Unico registro controllato direttamente dal modulo
     );
     
-    ///////////////////////////////////////
-    // RNG (XADC Wizard and 32-bit LFSR) //
-    ///////////////////////////////////////
+    //Manda alto busy quando si preme start, lo manda basso quando l'ultima chiave è generata
+    always @(posedge clk) begin
+        if (rst | d_key_valid)
+            busy <= 1'b0;
+        else if (start)
+            busy <= 1'b1;
+    end
     
-    wire [31:0] seed;
+    //////////////////////////////////
+    // LFSR RANDOM NUMBER GENERATOR //
+    //////////////////////////////////
     
-    //TODO questo modulo deve ancora essere scritto
-    SeedGenerator seeder (
-        .seed_out(seed)
+    wire rng_en;
+    wire nphi_require_rng;
+    wire ed_require_rng;
+    wire [31:0] rng_out;
+    
+    assign rng_en = (en & (~busy)) | (nphi_require_rng | ed_require_rng);
+    
+    LFSR32 rng_lfsr (
+        .clk          (clk),
+        .rst          (rst),
+        .en           (rng_en),
+        
+        .rng_out      (rng_out)
     );
     
-    LFSR32 rng (
-        .clk     (clk),
-        .rst     (rst),
-        .seed    (seed),
-        .rng_out ()
-    );
+    ////////////////////
+    // KEY GENERATORS //
+    ////////////////////
     
-    //////////////////////////
-    // GENERATORI DI CHIAVI //
-    //////////////////////////
-    
-    wire phi_valid;
     wire [31:0] phi;
+    wire phi_valid;
     
-    //TODO aggiungere gli altri generatori di chiavi
+    NnPhi_KeyGenerator n_phi_keygen (
+        .clk         (clk),
+        .rst         (rst),
+        .start       (start),
+        .random      (rng_out),
+        
+        .n_key       (n_key),
+        .phi         (phi),
+        .n_key_valid (n_key_valid),
+        .phi_valid   (phi_valid),
+        
+        .rng_en      (nphi_require_rng)
+    );
     
-    E_KeyGenerator e_keygen (
-        .clk   (clk),
-        .rst   (rst),
-        .en    (phi_valid),
+    EnD_KeyGenerator e_d_keygen (
+        .clk         (clk),
+        .rst         (rst),
+        .en          (phi_valid),
+        .phi         (phi),
+        .rng_e       (rng_out),
         
-        .seed  (seed),
-        .phi   (phi),
+        .e_key_valid (e_key_valid),
+        .e_key       (e_key),
+        .d_key_valid (d_key_valid),
+        .d_key       (d_key),
         
-        .valid (e_key_valid),
-        .e_key (e_key)
+        .rng_en      (ed_require_rng)
     );
     
 endmodule
