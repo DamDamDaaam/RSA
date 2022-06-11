@@ -5,16 +5,14 @@ module EnD_KeyGenerator(
     input wire clk,
     input wire rst,
     input wire en,            //Collegato al valid di phi
-    input wire [31:0] seed,
     input wire [31:0] phi,
+    input wire [31:0] rng_e,
     output reg e_key_valid,
     output reg [31:0] e_key,
     output reg d_key_valid,
-    output reg [31:0] d_key
-    
+    output reg [31:0] d_key,
+    output reg rng_en
     );
-    
-    wire [31:0] rng_e;
     
     wire [97:0] tickets_in;
     
@@ -46,7 +44,6 @@ module EnD_KeyGenerator(
     wire steady_state;    //tvalid dell'output di EuclidDivider
     reg [31:0] dividend;
     reg [31:0] divisor;
-    reg rng_en;
     wire valid;
     
     assign valid = (e_key_valid && d_key_valid);
