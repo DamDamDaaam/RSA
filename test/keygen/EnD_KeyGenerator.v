@@ -77,7 +77,7 @@ module EnD_KeyGenerator(
     // MULTIPLIER Parallel IP CORE //  (latenza 6 clk, throughput 1 clk/div)
     /////////////////////////////////
     
-    Multiplier_T1_Q_mults_speed_pipe6 end_kg_multiplier (
+    Multiplier33_32 end_kg_multiplier (
         .CLK    (~clk),
         
         .A      (t2_ticket_out),
@@ -271,7 +271,10 @@ module EnD_KeyGenerator(
             case (remainder_shift)
                 32'b0: begin              //Se trovato GCD =/= 1
                     dividend    = phi;
-                    divisor     = rng_e;  //fai entrare un nuovo numero casuale
+                    if (rng_e >= phi)     //ma rng_e è più grande di phi
+                        divisor = 32'b1;  //allora scarta il dato al prossimo giro;
+                    else                  //se invece rng_e è minore di phi
+                        divisor = rng_e;  //fallo entrare
                     e_ticket_in = rng_e;
                     
                     rng_en      = 1'b1;   //e abilita l'LFSR.
@@ -326,7 +329,10 @@ module EnD_KeyGenerator(
         end
         else begin  //Se invece la pipeline di EuclidDivider non è ancora piena
             dividend    = phi;
-            divisor     = rng_e;  //fai entrare un nuovo numero casuale
+            if (rng_e >= phi)     //ma rng_e è più grande di phi
+                divisor = 32'b1;  //allora scarta il dato al prossimo giro;
+            else                  //se invece rng_e è minore di phi
+                divisor = rng_e;  //fallo entrare
             e_ticket_in = rng_e;
             
             rng_en      = en;     //e abilita l'LFSR (se E_KeyGenerator è abilitato).

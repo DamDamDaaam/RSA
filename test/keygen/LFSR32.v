@@ -14,7 +14,7 @@ module LFSR32 (
     
     always @(posedge clk) begin
         if (rst)
-            rng_out <= 32'd1073741824;
+            rng_out <= 32'b11010100101001010110101010101101;
         else if (en) begin
             rng_out[0] <= feedback;
             rng_out[1] <= rng_out[0];

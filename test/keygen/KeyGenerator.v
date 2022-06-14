@@ -3,7 +3,6 @@
 //Modulo che genera le tre chiavi n_key, e_key e d_key sequenzialmente
 //mantenendole valide per un ciclo di clock; è responsabilità del
 //KeyManager registrare le chiavi nel momento in cui vengono generate
-//TODO scrivere un testbench
 
 module KeyGenerator (
     input wire clk,
@@ -20,6 +19,12 @@ module KeyGenerator (
     output reg d_key_valid,
     output reg busy         //Unico registro controllato direttamente dal modulo
     );
+    
+    wire e_key_valid_gen;
+    wire d_key_valid_gen;
+    
+    assign e_key_valid = e_key_valid_gen & busy; //Salva solo la prima coppia e_key d_key
+    assign d_key_valid = d_key_valid_gen & busy;
     
     //Manda alto busy quando si preme start, lo manda basso quando l'ultima chiave è generata
     always @(posedge clk) begin
@@ -71,14 +76,14 @@ module KeyGenerator (
     
     EnD_KeyGenerator e_d_keygen (
         .clk         (clk),
-        .rst         (rst),
+        .rst         (rst | ~busy),
         .en          (phi_valid),
         .phi         (phi),
         .rng_e       (rng_out),
         
-        .e_key_valid (e_key_valid),
+        .e_key_valid (e_key_valid_gen),
         .e_key       (e_key),
-        .d_key_valid (d_key_valid),
+        .d_key_valid (d_key_valid_gen),
         .d_key       (d_key),
         
         .rng_en      (ed_require_rng)
