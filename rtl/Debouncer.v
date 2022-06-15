@@ -23,7 +23,7 @@ module Debouncer (
 
    wire enable ;
 
-   TickCounter #(.MAX(1000000)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 0.5 kHz clock-enable
+   TickCounter #(.MAX(1000001)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 0.5 kHz clock-enable
 //   TickCounter #(.MAX(13)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 100 MHz clock-enable (for simulation purpose)
 
 

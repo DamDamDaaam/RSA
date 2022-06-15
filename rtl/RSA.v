@@ -8,7 +8,7 @@ module RSA(
     
     input wire clk,
     input wire [1:0] mode_select,       // SW[3:2]
-    input wire out_en,                  // SW[1]
+    //input wire out_en,                  // SW[1]   è stato usato come test
     input wire var_sel,                 // SW[0]
     
     input wire del,                     // BTN[3]
@@ -37,12 +37,12 @@ module RSA(
     .clk            (         clk ),
     .mode           ( mode_select ),
 /////////////////   TEST    ////////////////
-    .key_valid_test (      out_en ),
+//    .key_valid_test (      out_en ),
 /////////////////   TEST    ////////////////
     .select_key     (     var_sel ),
     
     .del_but        (         del ),
-    .start          (       start ),
+    .start_but      (       start ),
     .move_left_but  (      select ),
     .add_one_but    (         add ),
     

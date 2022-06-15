@@ -21,12 +21,12 @@ module KeyManager(
     input wire clk,
     input wire [1:0] mode,          // SW[3:2]
 /////////////////   TEST    ////////////////
-    input wire key_valid_test,      // SW[1]
+ //   input wire key_valid_test,      // SW[1]
 /////////////////   TEST    ////////////////
     input wire select_key,          // SW[0]
     
     input wire del_but,             // BTN[3] ( del    )
-    input wire start,               // BTN[2] ( start  )
+    input wire start_but,               // BTN[2] ( start  )
     input wire move_left_but,       // BTN[1] ( select )
     input wire add_one_but,         // BTN[0] ( add    )
     
@@ -43,6 +43,7 @@ module KeyManager(
     wire delete;
     wire move_left;
     wire add_one;
+    wire start;
     
     Debouncer delete_deb (
         
@@ -68,8 +69,17 @@ module KeyManager(
         
     );
     
+    Debouncer start_deb (
+        
+        .clk    (           clk ),
+        .button (     start_but ),
+        .pulse  (         start )
+        
+    );
+    
     reg  kg_start;                  // dà al KeyGenerator il via per generare chiavi
     reg  kg_rst;                    // rst di KeyGenerator
+    reg  kg_en;                     // enable di KeyGenerator
     wire kg_busy;                   // informa che KeyGenerator sta calcolando chiavi
     
     wire [31:0] n_key_gen;          // n_key generata dal KeyGenerator
@@ -80,14 +90,30 @@ module KeyManager(
     wire e_key_valid;               // flag che fa salvare il valore di e_key generato dal KeyGenerator
     wire d_key_valid;               // flag che fa salvare il valore di d_key generato dal KeyGenerator
     
+    KeyGenerator keygen (
+        .clk         (clk),
+        .rst         (kg_rst),
+        .en          (kg_en),
+        .start       (kg_start),
+        
+        .n_key       (n_key_gen),
+        .e_key       (e_key_gen),
+        .d_key       (d_key_gen),
+        
+        .n_key_valid (n_key_valid),
+        .e_key_valid (e_key_valid),
+        .d_key_valid (d_key_valid),
+        .busy        (kg_busy)
+    );
+    
 /////////////////   TEST    ////////////////
-    assign n_key_valid = key_valid_test;
+/*    assign n_key_valid = key_valid_test;
     assign e_key_valid = key_valid_test;
     assign d_key_valid = key_valid_test;
     
     assign n_key_gen = 32'd666666666;
     assign e_key_gen = 32'd123456789;
-    assign d_key_gen = 32'd987654321;
+    assign d_key_gen = 32'd987654321;*/
 /////////////////   TEST    ////////////////
     
     reg [3:0] position;
@@ -109,10 +135,13 @@ module KeyManager(
                 
                 kg_start <= 1'b0;
                 kg_rst <= 1'b1;
+                kg_en  <= 1'b0;
             end
             
             2'b01 : begin                       // Generazione chiavi
                 typing <= 1'b0;
+                
+                kg_en  <= 1'b1;
                 
                 if(n_key_valid)
                     n_key <= n_key_gen;
@@ -138,6 +167,7 @@ module KeyManager(
             2'b11 : begin                       // Crittaggio
                 kg_start <= 1'b0;
                 kg_rst <= 1'b0;
+                kg_en  <= 1'b0;
                 
                 if(select_key == 1'b0) begin    // mostra/modifica chiave n
                     if(delete) begin                                    // premere delete...
@@ -176,6 +206,7 @@ module KeyManager(
             2'b10 : begin                       // Decrittaggio
                 kg_start <= 1'b0;
                 kg_rst <= 1'b0;
+                kg_en  <= 1'b0;
                 
                 if(select_key == 1'b0) begin    // mostra/modifica chiave n
                     if(delete) begin                                    // premere delete...

@@ -32,7 +32,8 @@ set_property CONFIG_VOLTAGE 3.3 [current_design]
 
 set_property -dict {PACKAGE_PIN E3 IOSTANDARD LVCMOS33} [get_ports clk] ; #IO_L12P_T1_MRCC_35 Sch=gclk[100]
 create_clock -period 10.000 -name clk -waveform {0.000 5.000} -add [get_ports clk]
-
+set_input_delay  -clock clk 5 [all_inputs]
+set_output_delay -clock clk 5 [all_outputs]
 
 ########################
 ##   slide switches   ##
@@ -40,7 +41,10 @@ create_clock -period 10.000 -name clk -waveform {0.000 5.000} -add [get_ports cl
 
 
 set_property -dict { PACKAGE_PIN A8   IOSTANDARD LVCMOS33 } [get_ports { var_sel }]   ; #IO_L12N_T1_MRCC_16 Sch=sw[0]
-set_property -dict { PACKAGE_PIN C11  IOSTANDARD LVCMOS33 } [get_ports { out_en }]   ; #IO_L13P_T2_MRCC_16 Sch=sw[1]
+
+######### SLIDE SWITCH COMMENTATO
+#set_property -dict { PACKAGE_PIN C11  IOSTANDARD LVCMOS33 } [get_ports { out_en }]   ; #IO_L13P_T2_MRCC_16 Sch=sw[1]
+
 set_property -dict { PACKAGE_PIN C10  IOSTANDARD LVCMOS33 } [get_ports { mode_select[0] }]   ; #IO_L13N_T2_MRCC_16 Sch=sw[2]
 set_property -dict { PACKAGE_PIN A10  IOSTANDARD LVCMOS33 } [get_ports { mode_select[1] }]   ; #IO_L14P_T2_SRCC_16 Sch=sw[3]
 

@@ -50,9 +50,15 @@ SHELL := bash
 ## main "scratch" working area used to run the flows (default: work/sim for simulations, work/build for implementation)
 WORK_DIR := work
 
-## additional useful "clean" directories to store input design data
+# uncomment these if you are testing a module in the test folder
 RTL_DIR := rtl
-SIM_DIR := bench
+SIM_DIR := bench/keygen
+
+# uncomment these to compile the entire project
+#RTL_DIR := rtl
+#SIM_DIR := bench
+
+## additional useful "clean" directories to store things
 TCL_DIR := scripts
 DOC_DIR := doc
 
@@ -77,7 +83,7 @@ LOG_DIR  := log
 RTL_TOP_MODULE := RSA
 
 ## specify top-level testbench module (this is the target module for the xelab executable)
-SIM_TOP_MODULE := tb_RSA
+SIM_TOP_MODULE := tb_KeyGenerator
 
 
 ##
@@ -145,7 +151,6 @@ VHDL_SOURCES := $(RTL_VHDL_SOURCES) $(SIM_VHDL_SOURCES)
 ##
 
 ## as for HDL sources, specify IP netlists by hand or automatically search for all *netlist.v sources
-# IPS_SOURCES := $(IPS_DIR)/PLL/PLL_netlist.v
 
 ifneq ($(wildcard $(IPS_DIR)/*/*netlist.v ),)
    IPS_SOURCES += $(wildcard $(IPS_DIR)/*/*netlist.v )
