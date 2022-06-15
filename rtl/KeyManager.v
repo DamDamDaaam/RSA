@@ -20,6 +20,9 @@ module KeyManager(
     
     input wire clk,
     input wire [1:0] mode,          // SW[3:2]
+/////////////////   TEST    ////////////////
+    input wire key_valid_test,      // SW[1]
+/////////////////   TEST    ////////////////
     input wire select_key,          // SW[0]
     
     input wire del_but,             // BTN[3] ( del    )
@@ -77,6 +80,15 @@ module KeyManager(
     wire e_key_valid;               // flag che fa salvare il valore di e_key generato dal KeyGenerator
     wire d_key_valid;               // flag che fa salvare il valore di d_key generato dal KeyGenerator
     
+/////////////////   TEST    ////////////////
+    assign n_key_valid = key_valid_test;
+    assign e_key_valid = key_valid_test;
+    assign d_key_valid = key_valid_test;
+    
+    assign n_key_gen = 32'd666666666;
+    assign e_key_gen = 32'd123456789;
+    assign d_key_gen = 32'd987654321;
+/////////////////   TEST    ////////////////
     
     reg [3:0] position;
     reg [3:0] value;

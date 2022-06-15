@@ -23,26 +23,38 @@ module Debouncer (
 
    wire enable ;
 
-   TickCounter #(.MAX(50000)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 0.5 kHz clock-enable
-//   TickCounter #(.MAX(1)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 100 MHz clock-enable (for simulation purpose)
+   TickCounter #(.MAX(1000000)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 0.5 kHz clock-enable
+//   TickCounter #(.MAX(13)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 100 MHz clock-enable (for simulation purpose)
 
 
    ////////////////////////////////
-   //   single-pulse generator   //
+   //   single-pulse generator   // tick length = period of TickCounter
    ////////////////////////////////
 
-   reg [2:0] q = 'b0 ;   // 3 FlipFlops
+   reg [2:0] q1 = 'b0 ;   // 3 FlipFlops
 
    always @(posedge clk) begin
 
       if(enable) begin
-         q[0] <= button ;
-         q[1] <= q[0] ;
-         q[2] <= q[0] & (~q[1]) ;
+         q1[0] <= button ;
+         q1[1] <= q1[0] ;
+         q1[2] <= q1[0] & (~q1[1]) ;
       end
    end
+   
+   ////////////////////////////////
+   //   single-pulse generator   // tick length = period of clk
+   ////////////////////////////////
 
-   assign pulse = q[2] ;
+   reg [2:0] q2 = 'b0 ;   // 3 FlipFlops
+
+   always @(posedge clk) begin
+      q2[0] <= q1[2] ;
+      q2[1] <= q2[0] ;
+      q2[2] <= q2[0] & (~q2[1]) ;
+   end
+
+   assign pulse = q2[2] ;
 
 endmodule
 
