@@ -81,8 +81,8 @@ set_property -dict { PACKAGE_PIN A10  IOSTANDARD LVCMOS33 } [get_ports { mode_se
 
 set_property -dict { PACKAGE_PIN D9  IOSTANDARD LVCMOS33 } [get_ports {       add }]   ; #IO_L6N_T0_VREF_16 Sch=btn[0]
 set_property -dict { PACKAGE_PIN C9  IOSTANDARD LVCMOS33 } [get_ports {    select }]   ; #IO_L11P_T1_SRCC_16 Sch=btn[1]
-set_property -dict { PACKAGE_PIN B9  IOSTANDARD LVCMOS33 } [get_ports {       del }]   ; #IO_L11N_T1_SRCC_16 Sch=btn[2]
-set_property -dict { PACKAGE_PIN B8  IOSTANDARD LVCMOS33 } [get_ports {     start }]   ; #IO_L12P_T1_MRCC_16 Sch=btn[3]
+set_property -dict { PACKAGE_PIN B9  IOSTANDARD LVCMOS33 } [get_ports {     start }]   ; #IO_L11N_T1_SRCC_16 Sch=btn[2]
+set_property -dict { PACKAGE_PIN B8  IOSTANDARD LVCMOS33 } [get_ports {       del }]   ; #IO_L12P_T1_MRCC_16 Sch=btn[3]
 
 
 ########################

@@ -36,6 +36,9 @@ module RSA(
     
     .clk            (         clk ),
     .mode           ( mode_select ),
+/////////////////   TEST    ////////////////
+    .key_valid_test (      out_en ),
+/////////////////   TEST    ////////////////
     .select_key     (     var_sel ),
     
     .del_but        (         del ),
@@ -64,7 +67,7 @@ module RSA(
             2'b00 : begin                       // Spento   ->  RESET GLOBALE (attivo alto)
                 show_mode = 4'ha;               // "-."
                 show_key = 32'h0;               // "0000000000"
-                working = 1'b0;
+                working = 1'b1;
             end
             
             2'b01 :                             // Generazione chiavi
@@ -160,7 +163,8 @@ module RSA(
     SevenSegment_12_Digits schermo (
     
         .clk      (               clk ),
-        .en       ( out_en & ~working ),
+//        .en       ( out_en & ~working ),
+        .en       (          ~working ),
         .mode     (         show_mode ),      // input della mode da stampare a video
         .BCD      (           BCD_val ),      // input del numero da stampare a video
         
