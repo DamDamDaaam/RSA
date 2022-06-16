@@ -28,6 +28,7 @@ module RingRNG (
     buf(buffed[31], lhca_out[31]);
     
     //Tutti i bit tranne il primo e l'ultimo
+    (* dont_touch = "yes" *)
     generate
         for (i = 1; i < 31; i = i + 1) begin
             xor(ring[i], ring[i - 1], ring[i], ring[i + 1]);

@@ -6,7 +6,7 @@ module TestROM(
     output wire [15:0] data
     );
 
-    Primes_16bit_ROM rom (
+    Primes16bit_ROM_L2 rom (
         .clka(clk),
         .addra(addr),
         .douta(data)

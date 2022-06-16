@@ -6,6 +6,17 @@ module E_KeyGenerator(
     input wire en,            //Collegato al valid di phi
     input wire [31:0] seed,
     input wire [31:0] phi,
+    
+    //I/O per EuclidDivider
+    input wire        steady_state;
+    input wire [31:0] remainder;
+    input wire [63:0] tickets_out;
+    output reg        div_tvalid;
+    output reg [31:0] dividend;
+    output reg [31:0] divisor;
+    output reg [31:0] e_ticket_in;
+    
+    //Output da passare a KeyGenerator perchè li passi a KeyManager
     output reg valid,
     output reg [31:0] e_key
     );
@@ -55,25 +66,6 @@ module E_KeyGenerator(
       .m_axis_dout_tuser      (tickets_out ),
       .m_axis_dout_tdata      (data_out    )
     );
-    
-    ///////////////////////////////////////
-    // Register for final result storage //
-    ///////////////////////////////////////
-    
-    /*reg key_found;                   //Questi registri potrebbero non essere necessari se
-    reg [31:0] verified_e_key;         //si decide di scaricare a KeyGenerator la
-                                       //responsabilità di spedire la chiave appena verificata
-    initial begin                      //al KeyManager
-        valid <= 1'b0;
-        e_key <= 32'b0;
-    end
-    
-    always @(posedge clk) begin
-        if (key_found) begin
-            valid <= 1'b1;
-            e_key <= verified_e_key;
-        end
-    end*/
     
     //////////////////////////////////////////
     // COMBINATIONAL EUCLID ALGORITHM LOGIC //
