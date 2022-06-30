@@ -95,12 +95,15 @@ module UART_Transmitter (
     always @(*) begin
         case (state)
             IDLE: begin
-                tx    = 1'b1;
-                ready = 1'b1;
-                if (long_start)
+                tx = 1'b1;
+                if (long_start) begin
+                    ready = 1'b0;
                     next_state = START;
-                else
+                end
+                else begin
+                    ready = 1'b1;
                     next_state = IDLE;
+                end
             end
             
             START: begin
