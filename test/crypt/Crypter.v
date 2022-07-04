@@ -1,5 +1,13 @@
-
 `timescale 1ns / 100ps
+
+//TODO Aggiungere "end of transmission" al receiver UART (che guarda un byte alla volta i dati in ingresso e controlla una sequenza dedicata)
+//TODO Creare la macchina a stati che trasmette i dati criptati alla UART
+
+//Il modulo cripta e decripta stream di bit prodotti leggendo i byte dal primo all'ultimo e leggendo ogni byte da LSB a MSB. Questo causa uno scrambling dei valori durante l'impacchettamento, ma al momento di decriptare questo scrambling viene annullato.
+
+//I valori che vengono criptati sono blocchi da 32 bit ottenuti aggiungendo zeri di padding a sinistra fino ad arrivare a 32 dopo aver impacchettato un numero di bit di input pari al numero di bit della chiave N meno 1
+
+//I valori che vengono decriptati 
 
 module Crypter (
     
@@ -22,6 +30,10 @@ module Crypter (
     output reg [7:0] data_out
     
     );
+    
+    ////////////////////////////////////////
+    // FAST MODULAR EXPONENTIATION MODULE //
+    ////////////////////////////////////////
     
     reg fme_start;              //tick per avviare la conversione
     reg [31:0] message_in;
@@ -49,7 +61,7 @@ module Crypter (
     // DATA PACKING //
     //////////////////
     
-    reg [4:0] n_len = 5'b0;
+    /*reg [4:0] n_len = 5'b0;
     reg [31:0] n_key_buf = 32'b0;
     
     always @(posedge clk) begin
@@ -60,185 +72,152 @@ module Crypter (
         else begin
             if (start) begin
                 n_key_buf <= n_key;
+                n_len <= 5'b0;
             end
             if (n_key_buf > 32'b0) begin
                 n_key_buf <= n_key_buf >> 1;
                 n_len <= n_len + 5'b1;                    
             end
         end
-    end
+    end*/
     
-    ////////////////////////
-    // FAST MOD EXP - FSM //
-    ////////////////////////
+    ///////////////////////////
+    // ENCRYPT OPERATION FSM //
+    ///////////////////////////
     
-    parameter [2:0] IDLE   = 3'h0;
-    parameter [2:0] START  = 3'h1;
-    parameter [2:0] MULT_R = 3'h2;
-    parameter [2:0] MULT_A = 3'h3;
-    parameter [2:0] WAIT   = 3'h4;
-    parameter [2:0] SAVE_R = 3'h5;
-    parameter [2:0] SAVE_A = 3'h6;
-    parameter [2:0] DONE   = 3'h7;
+    parameter [3:0] IDLE  = 4'd0;
+    parameter [3:0] START = 4'd1;
+    parameter [3:0] SIZING = 4'd2;
+    parameter [3:0] SEND_SIZE = 4'd3;
+    parameter [3:0] PACK = 4'd4;
+    parameter [3:0] PADDING = 4'd5;
+    parameter [3:0] CRYPT = 4'd7;
     
-    reg [2:0] state;
-    reg [2:0] next_state;
+    reg [3:0] state;
+    reg [3:0] next_state;
     
-    reg [31:0] a_tmp;
-    reg [31:0] r_tmp;
-    reg [31:0] n_tmp;
+    reg [4:0] n_len = 5'b0;
+    reg [31:0] n_key_buf = 32'b0;
     
-    reg [31:0] nxt_n;
-    reg [6:0] waitCounter;
+    reg [31:0] pack = 32'b0; //Shift register per contenere i dati da impacchettare
+    reg [4:0]  pack_count;   //Contatore che indica quanti bit sono stati aggiunti al pacchetto
+    
+    assign message_in = pack;
     
     always @(posedge clk) begin
         if (rst) begin
-            a_tmp <= 32'h0;
-            r_tmp <= 32'h0;
-            n_tmp <= 32'h0;
-            waitCounter <= 7'h0;
+            n_key_buf <= 32'b0;
+            n_len <= 5'b0;
+            pack <= 32'b0;
+            pack_count <= 5'b0;
             state <= IDLE;
         end
-        else begin
-            if (state == START) begin
-                a_tmp <= base;
-                n_tmp <= exponent;
-                r_tmp <= 32'h1;
-            end
-            else if (state == MULT_A) begin
-                n_tmp <= nxt_n;
-                waitCounter <= 7'h0;
-            end
-            else if (state == WAIT) begin
-                waitCounter <= waitCounter + 7'h1;
-            end
-            else if (state == SAVE_R) begin
-                r_tmp <= remainder;
-            end
-            else if (state == SAVE_A) begin
-                a_tmp <= remainder;
-            end
-
+        else
             state <= next_state;
-        end
+        case (state)
+            START: begin
+                n_key_buf <= n_key;
+                n_len <= 5'b0;
+            end
+            
+            SIZING: begin
+                if (n_key_buf > 32'b0) begin
+                    n_key_buf <= n_key_buf >> 1;
+                    n_len <= n_len + 5'b1;
+                end
+            end
+            
+            PACK: begin
+                if (read_in) begin
+                    pack <= {data_in, pack} >> 1;
+                    pack_count <= pack_count + 1'b1;
+                end
+            end
+            
+            PADDING: begin
+                pack <= pack >> 1;
+                pack_count <= pack_count + 1'b1;
+            end
+        endcase
     end
     
     always @(*) begin
         case (state)
             IDLE: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
+                data_out = 8'b0;
+                start_out = 1'b0;
+                fme_start = 1'b0;
                 
-                nxt_n = 32'b0;
-                
-                result = 32'b0;
-                done = 1'b0;
-                
-                if (start) begin
+                if (start)
                     next_state = START;
-                end
-                else begin
+                else
                     next_state = IDLE;
-                end
             end
             
             START: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
+                data_out = 8'b0;
+                start_out = 1'b0;
+                fme_start = 1'b0;
                 
-                nxt_n = 32'b0;
-
-                result = 32'b0;
-                done = 1'b0;
-                
-                next_state = MULT_R;
+                next_state = SIZING;
             end
-
-            MULT_R: begin
-                mult1 = r_tmp;
-
-                nxt_n = 32'b0;
-
-                result = 32'b0;
-                done = 1'b0;
-                
-                if (n_tmp[0] == 1'b1) begin
-                    mult2 = a_tmp;
+            
+            SIZING: begin
+                fme_start = 1'b0;
+                if (n_key_buf > 32'b0) begin
+                    data_out = 8'b0;
+                    start_out = 1'b0;
+                    
+                    next_state = SIZING;
                 end
                 else begin
-                    mult2 = 32'b1;
+                    data_out = n_len;
+                    start_out = 1'b1;
+                    
+                    next_state = SEND_SIZE;
                 end
-                
-                next_state = MULT_A;
             end
             
-            MULT_A: begin
-                mult1 = a_tmp;
-                mult2 = a_tmp;
+            SEND_SIZE: begin
+                data_out = n_len;
+                start_out = 1'b0;
+                fme_start = 1'b0;
                 
-                nxt_n[31] = 1'b0;
-                nxt_n[30:0] = n_tmp[31:1];
-
-                result = 32'b0;
-                done = 1'b0;
-                
-                next_state = WAIT;
-            end
-            
-            WAIT: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
-                
-                nxt_n = 32'b0;
-
-                result = 32'b0;
-                done = 1'b0;
-                
-                if (waitCounter == 7'd70)  //VERIFICARE
-                    next_state = SAVE_R;
+                if (ready_out)
+                    next_state = PACK;
                 else
-                    next_state = WAIT;
+                    next_state = SEND_SIZE;
             end
             
-            SAVE_R: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
+            PACK: begin
+                data_out = 8'b0;
+                start_out = 1'b0;
+                fme_start = 1'b0;
                 
-                nxt_n = 32'b0;
-
-                result = 32'b0;
-                done = 1'b0;
-                
-                next_state = SAVE_A;
-            end
-            
-            SAVE_A: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
-                
-                nxt_n = 32'b0;
-
-                result = 32'b0;
-                done = 1'b0;
-                
-                if(n_tmp == 32'b0)
-                    next_state = DONE;
+                if (pack_count == n_len - 5'd1)
+                    next_state = PADDING;
                 else
-                    next_state = MULT_R;
+                    next_state = PACK;
             end
             
-            DONE: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
+            PADDING: begin
+                data_out = 8'b0;
+                start_out = 1'b0;
+                fme_start = 1'b0;
                 
-                nxt_n = 32'b0;
-
-                result = r_tmp;
-                done = 1'b1;
-                
-                next_state = IDLE;
+                if (pack_count == 5'd31)
+                    next_state = CRYPT;
+                else
+                    next_state = PADDING;
             end
             
+            CRYPT: begin
+                data_out = 8'b0;
+                start_out = 1'b0;
+                fme_start = 1'b1;
+                
+                next_state = PACK;
+            end
         endcase
     end
     

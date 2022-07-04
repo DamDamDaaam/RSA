@@ -8,6 +8,7 @@ module tb_UART_Receiver_Bit;
     reg rx = 1'b1;
     wire bit_ready;
     wire data_out;
+    wire eot;
     
     reg [6:0] count = 0;
     
@@ -18,7 +19,8 @@ module tb_UART_Receiver_Bit;
         .rx        (rx),
         
         .bit_ready (bit_ready), 
-        .data_out  (data_out) 
+        .data_out  (data_out), 
+        .eot       (eot)
     );
     
     initial begin
@@ -137,18 +139,19 @@ module tb_UART_Receiver_Bit;
         #1600 rx = 1'b0;
         #1600 rx = 1'b1; //STOP
         
+        //Carattere EOT
         #1600 rx = 1'b0; //START
         #1600 rx = 1'b0;
-        #1600 rx = 1'b1;
         #1600 rx = 1'b0;
         #1600 rx = 1'b1;
-        #1600 rx = 1'b1;
+        #1600 rx = 1'b0;
+        #1600 rx = 1'b0;
         #1600 rx = 1'b0;
         #1600 rx = 1'b0;
         #1600 rx = 1'b0;
         #1600 rx = 1'b1; //STOP
         
-        #100 $finish;
+        #3000 $finish;
     end
     
 endmodule
