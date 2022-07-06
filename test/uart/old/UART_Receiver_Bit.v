@@ -2,21 +2,24 @@
 
 //Ricevitore UART con baud rate 19.2 kHz
 
-module UART_Receiver (
+//Questo ricevitore contiene uno shift register per effettuare il check di EOT; questo significa che ogni byte esce solo all'arrivo del successivo, quindi è imperativo inviare un carattere EOT al termine di ogni trasmissione per permettere la fuoriuscita di tutti i dati
+
+module UART_Receiver_Bit (
     input wire clk,
     input wire rst,
     input wire baud_tick,   //Tick ricevuto a frequenza 307200 Hz (16*baud_rate)
     input wire rx,          //Input seriale.
-    output reg data_valid,  //Tick inviato a fine lettura.
-    output reg [7:0] data   //Shift register contenente i dati letti.
+    output reg bit_ready,   //Tick inviato ogni volta che un nuovo bit è disponibile.
+    output reg data_out,    //Valore del bit leggibile
+    output reg eot          //End of transmission: alto per 
     );
     
-    reg  bit_ready;               //Tick inviato quando si è centrati su un bit ricevuto
-    reg  [2:0] data_count;        //Registro contenente il numero di bit ricevuti
-    wire [8:0] uart_rx_shiftreg;  //Variabile di comodità per shiftare facilmente
-    wire rx_done;                 //Segnale alto quando l'ultimo bit viene ricevuto
+    reg  bit_ready_baud;    //Tick lungo inviato quando un bit è pronto
+    reg  [2:0] data_count;  //Registro contenente il numero di bit ricevuti
+    wire rx_done;           //Segnale alto quando l'ultimo bit viene ricevuto
+    reg [8:0] data = 9'b0; //Shift register con un byte di check più un bit per la trasmissione
     
-    assign uart_rx_shiftreg = {rx, data};
+    assign data_out = data[0];
     assign rx_done = (data_count == 3'd7);
     
     ///////////////////////
@@ -48,6 +51,19 @@ module UART_Receiver (
         .count (baud_count)
     );
     
+    ////////////////////////////////////////////
+    // BAUD TICK TO SINGLE CLK TICK CONVERTER //
+    ////////////////////////////////////////////
+    
+    reg [1:0] q;
+    
+    always @(posedge clk) begin
+        q[0] <= bit_ready_baud;
+        q[1] <= q[0] & (~bit_ready_baud);
+    end
+    
+    assign bit_ready = q[1];
+    
     //////////////////////////
     // SEQUENTIAL FSM LOGIC //
     //////////////////////////
@@ -55,13 +71,13 @@ module UART_Receiver (
     always @(posedge clk) begin
         if (rst) begin
             data_count <= 3'b0;
-            data       <= 8'b0;
+            data <= 8'b0;
             state <= IDLE;
         end
         else begin
             if (bit_ready) begin                   //Se un bit è pronto alla lettura
                 data_count  <= data_count + 3'b1;  //aggiungi 1 al numero di bit ricevuti
-                data <= uart_rx_shiftreg >> 1;     //e shifta il bit nella variabile data 
+                data <= {rx, data} >> 1;
             end
             state <= next_state;
         end
@@ -74,9 +90,9 @@ module UART_Receiver (
     always @(*) begin
         case (state)
             IDLE: begin
-                data_valid  = 1'b0;
-                bit_ready   = 1'b0;
-                counter_rst = 1'b1;
+                bit_ready_baud = 1'b0;
+                counter_rst    = 1'b1;
+                eot = 1'b0;
                 if (rx == 1'b1)
                     next_state = IDLE;
                 else
@@ -84,9 +100,9 @@ module UART_Receiver (
             end
             
             START: begin
-                data_valid  = 1'b0;
-                bit_ready   = 1'b0;
-                if (baud_count == 4'd7) begin
+                bit_ready_baud = 1'b0;
+                eot = 1'b0;
+                if (baud_count == 4'd8) begin
                     counter_rst = 1'b1;
                     next_state = READ;
                 end
@@ -97,26 +113,29 @@ module UART_Receiver (
             end
             
             READ: begin
-                data_valid = 1'b0;
                 counter_rst = 1'b0;
+                eot = 1'b0;
                 if (baud_count == 4'd15) begin
-                    bit_ready = 1'b1;
+                    bit_ready_baud = 1'b1;
                     if (rx_done)
                         next_state = STOP;
                     else
                         next_state = READ;
                 end
                 else begin
-                    bit_ready = 1'b0;
+                    bit_ready_baud = 1'b0;
                     next_state = READ;
                 end
             end
             
             STOP: begin
-                data_valid = 1'b1;
-                bit_ready = 1'b0;
-                counter_rst = 1'b0;
-                if (baud_count == 4'd15)
+                bit_ready_baud = 1'b0;
+                counter_rst    = 1'b0;
+                if (data[8:1] == 8'd4)
+                    eot = 1'b1;
+                else
+                    eot = 1'b0;
+                if (baud_count == 4'd14)
                     next_state = IDLE;
                 else
                     next_state = STOP;

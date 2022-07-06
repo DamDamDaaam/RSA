@@ -4,7 +4,7 @@
 //I dati non passano dall'interfaccia, bensì raggiungono direttamente il transmitter.
 //Se in futuro dovesse servire il buffer, è possibile usare direttamente UART_RX_Interface_Pong, scambiando solo i significati di set_flag e clear_flag quando la si collega.
 
-module UART_TX_Interface_Pong (
+module UART_TX_Interface (
     input wire clk,
     input wire rst,
     input wire clear_flag,    //Viene da tx_done_tick di UART_TX e dice "Ho inviato i dati"

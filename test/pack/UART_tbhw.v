@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 
-module UART_Pong_tbhw (
+module UART_tbhw (
     input wire clk,
     input wire rx,
     output wire tx

@@ -1,61 +1,81 @@
 `timescale 1ns / 100ps
 
+//Percorso dei dati:
+//Mondo esterno ----> Receiver ----> RX Interface ----> Crypter
+//Crypter ----> Transmitter ----> Mondo esterno
+
 module UART (
     input wire clk,
     input wire rst,
     
-    input wire  rx_stream,   //Stream seriali da collegare ai pin UART
+    input  wire rx_stream,     //Canali di comunicazione con l'esterno. Collegare in XDC
     output wire tx_stream,
     
-    output wire rx_bit,      //Pin di ricezione dati
-    output wire rx_ready, 
+    input wire rx_used_tick,   //Pin relativi alla ricezione
+    output wire rx_readable,
+    output wire [7:0] rx_data,
     
-    input wire tx_start,     //Pin di trasmissione dati
+    input wire tx_start,       //Pin relativi alla trasmissione
     input wire [7:0] tx_data,
-    output wire tx_ready
-    
+    output wire tx_busy,
+    output wire tx_done_tick
     );
     
-    //////////////////////////////////////////
-    // BAUD RATE TICK GENERATOR (307.2 kHz) //
-    //////////////////////////////////////////
-    
+    //Collegamenti interni
     wire baud_tick;
+    wire rx_done_tick;
+    //wire tx_done_tick; //SCOMMENTARE SE SERVE TOGLIERLO DALLA PORT LIST
+    wire [7:0] rx_data_unbuffered;
+    
     
     BaudTicker
-    #(.BAUD_RATE(19200))    //Baud rate per la sintesi.
-  //#(.BAUD_RATE(625000))   //Baud rate per la simulazione.
-    uart_baud_gen (         //ATTENZIONE: baud_rate 19.2 kHz internamente
-        .clk  (clk),        //approssimato a 19.17 kHz se la frequenza di
-        .rst  (rst),        //clk è 100 MHz.
+    //#(.BAUD_RATE(19200))
+    #(.BAUD_RATE(625000))     //Baud rate di simulazione
+    baud_ticker (
+        .clk  (clk),
+        .rst  (rst),
         .tick (baud_tick)
     );
     
-    /////////////////////////////////////
-    // RECEIVER AND TRASMITTER MODULES //
-    /////////////////////////////////////
-    
-    UART_Receiver_Bit uart_rx (
-        .clk        (clk),
-        .rst        (rst),
-        .baud_tick  (baud_tick),
+    UART_RX uart_receiver (
+        .clk          (clk),
+        .rst          (rst),
+        .baud_tick    (baud_tick),
+        .rx           (rx_stream),
         
-        .rx         (rx_stream),
-        
-        .bit_ready  (rx_ready),
-        .data_out   (rx_bit)
+        .rx_done_tick (rx_done_tick),
+        .data_out     (rx_data_unbuffered)
     );
     
-    UART_Transmitter uart_tx (
-        .clk        (clk),
-        .rst        (rst),
-        .baud_tick  (baud_tick),
+    UART_TX uart_transmitter (
+        .clk          (clk),
+        .rst          (rst),
+        .baud_tick    (baud_tick),
+        .tx_start     (tx_start),
+        .data_in      (tx_data),
         
-        .start      (tx_start),
-        .data       (tx_data),
+        .tx           (tx_stream),
+        .tx_done_tick (tx_done_tick)
+    );
+    
+    UART_RX_Interface uart_rx_interface (
+        .clk         (clk),
+        .rst         (rst),
+        .clear_flag  (rx_used_tick),
+        .set_flag    (rx_done_tick),
+        .data_in     (rx_data_unbuffered),
         
-        .tx         (tx_stream),
-        .ready      (tx_ready)
+        .flag        (rx_readable),
+        .data_out    (rx_data)
+    );
+    
+    UART_TX_Interface uart_tx_interface (
+        .clk         (clk),
+        .rst         (rst),
+        .clear_flag  (tx_done_tick),
+        .set_flag    (tx_start),
+        
+        .flag        (tx_busy)
     );
     
 endmodule

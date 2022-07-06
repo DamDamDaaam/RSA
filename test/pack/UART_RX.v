@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 
-module UART_RX_Pong (
+module UART_RX (
     input wire clk,
     input wire rst,
     input wire baud_tick,

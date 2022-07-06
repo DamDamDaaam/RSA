@@ -2,21 +2,22 @@
 
 //Ricevitore UART con baud rate 19.2 kHz
 
-module UART_Receiver_Bit (
+module UART_Receiver_Byte (
     input wire clk,
     input wire rst,
     input wire baud_tick,   //Tick ricevuto a frequenza 307200 Hz (16*baud_rate)
     input wire rx,          //Input seriale.
-    output reg bit_ready,   //Tick inviato ogni volta che un nuovo bit è disponibile.
-    output reg data_out     //Valore del bit leggibile
+    output reg data_valid,  //Tick inviato a fine lettura.
+    output reg [7:0] data   //Shift register contenente i dati letti.
     );
     
-    reg  bit_ready_baud;    //Tick lungo inviato quando un bit è pronto
-    reg  [2:0] data_count;  //Registro contenente il numero di bit ricevuti
-    wire rx_done;           //Segnale alto quando l'ultimo bit viene ricevuto
+    reg  bit_ready;               //Tick inviato quando si è centrati su un bit ricevuto
+    reg  [2:0] data_count;        //Registro contenente il numero di bit ricevuti
+    wire [8:0] uart_rx_shiftreg;  //Variabile di comodità per shiftare facilmente
+    wire rx_done;                 //Segnale alto quando l'ultimo bit viene ricevuto
     
+    assign uart_rx_shiftreg = {rx, data};
     assign rx_done = (data_count == 3'd7);
-    assign data_out = rx;
     
     ///////////////////////
     // STATES DEFINITION //
@@ -47,19 +48,6 @@ module UART_Receiver_Bit (
         .count (baud_count)
     );
     
-    ////////////////////////////////////////////
-    // BAUD TICK TO SINGLE CLK TICK CONVERTER //
-    ////////////////////////////////////////////
-    
-    reg [1:0] q;
-    
-    always @(posedge clk) begin
-        q[0] <= bit_ready_baud;
-        q[1] <= q[0] & (~bit_ready_baud);
-    end
-    
-    assign bit_ready = q[1];
-    
     //////////////////////////
     // SEQUENTIAL FSM LOGIC //
     //////////////////////////
@@ -67,11 +55,14 @@ module UART_Receiver_Bit (
     always @(posedge clk) begin
         if (rst) begin
             data_count <= 3'b0;
+            data       <= 8'b0;
             state <= IDLE;
         end
         else begin
-            if (bit_ready)                         //Se un bit è pronto alla lettura
+            if (bit_ready) begin                   //Se un bit è pronto alla lettura
                 data_count  <= data_count + 3'b1;  //aggiungi 1 al numero di bit ricevuti
+                data <= uart_rx_shiftreg >> 1;     //e shifta il bit nella variabile data 
+            end
             state <= next_state;
         end
     end
@@ -83,8 +74,9 @@ module UART_Receiver_Bit (
     always @(*) begin
         case (state)
             IDLE: begin
-                bit_ready_baud = 1'b0;
-                counter_rst    = 1'b1;
+                data_valid  = 1'b0;
+                bit_ready   = 1'b0;
+                counter_rst = 1'b1;
                 if (rx == 1'b1)
                     next_state = IDLE;
                 else
@@ -92,8 +84,9 @@ module UART_Receiver_Bit (
             end
             
             START: begin
-                bit_ready_baud = 1'b0;
-                if (baud_count == 4'd8) begin
+                data_valid  = 1'b0;
+                bit_ready   = 1'b0;
+                if (baud_count == 4'd7) begin
                     counter_rst = 1'b1;
                     next_state = READ;
                 end
@@ -104,24 +97,26 @@ module UART_Receiver_Bit (
             end
             
             READ: begin
+                data_valid = 1'b0;
                 counter_rst = 1'b0;
                 if (baud_count == 4'd15) begin
-                    bit_ready_baud = 1'b1;
+                    bit_ready = 1'b1;
                     if (rx_done)
                         next_state = STOP;
                     else
                         next_state = READ;
                 end
                 else begin
-                    bit_ready_baud = 1'b0;
+                    bit_ready = 1'b0;
                     next_state = READ;
                 end
             end
             
             STOP: begin
-                bit_ready_baud = 1'b0;
-                counter_rst    = 1'b0;
-                if (baud_count == 4'd14)
+                data_valid = 1'b1;
+                bit_ready = 1'b0;
+                counter_rst = 1'b0;
+                if (baud_count == 4'd15)
                     next_state = IDLE;
                 else
                     next_state = STOP;

@@ -4,21 +4,18 @@
 //Mondo esterno ----> Receiver ----> RX Interface ----> Crypter
 //Crypter ----> Transmitter ----> Mondo esterno
 
-module UART_Pong (
+module UART (
     input wire clk,
     input wire rst,
     
-    //Canali di comunicazione con l'esterno. Collegare in XDC
-    input  wire rx_stream,
+    input  wire rx_stream,     //Canali di comunicazione con l'esterno. Collegare in XDC
     output wire tx_stream,
     
-    //Pin relativi alla ricezione
-    input wire rx_used_tick,
+    input wire rx_used_tick,   //Pin relativi alla ricezione
     output wire rx_readable,
     output wire [7:0] rx_data,
     
-    //Pin relativi alla trasmissione
-    input wire tx_start,
+    input wire tx_start,       //Pin relativi alla trasmissione
     input wire [7:0] tx_data,
     output wire tx_busy,
     output wire tx_done_tick
@@ -40,7 +37,7 @@ module UART_Pong (
         .tick (baud_tick)
     );
     
-    UART_RX_Pong uart_receiver (
+    UART_RX uart_receiver (
         .clk          (clk),
         .rst          (rst),
         .baud_tick    (baud_tick),
@@ -50,7 +47,7 @@ module UART_Pong (
         .data_out     (rx_data_unbuffered)
     );
     
-    UART_TX_Pong uart_transmitter (
+    UART_TX uart_transmitter (
         .clk          (clk),
         .rst          (rst),
         .baud_tick    (baud_tick),
@@ -61,7 +58,7 @@ module UART_Pong (
         .tx_done_tick (tx_done_tick)
     );
     
-    UART_RX_Interface_Pong uart_rx_interface (
+    UART_RX_Interface uart_rx_interface (
         .clk         (clk),
         .rst         (rst),
         .clear_flag  (rx_used_tick),
@@ -72,7 +69,7 @@ module UART_Pong (
         .data_out    (rx_data)
     );
     
-    UART_TX_Interface_Pong uart_tx_interface (
+    UART_TX_Interface uart_tx_interface (
         .clk         (clk),
         .rst         (rst),
         .clear_flag  (tx_done_tick),

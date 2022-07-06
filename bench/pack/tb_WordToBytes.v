@@ -17,7 +17,7 @@ module tb_WordToBytes;
     wire tx_busy;
     wire tx_done_tick;
 
-    UART_Pong uart (
+    UART uart (
         .clk       (clk),
         .rst       (rst),
         

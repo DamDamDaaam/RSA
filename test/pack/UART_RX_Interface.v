@@ -2,7 +2,7 @@
 
 //Interfaccia dotata di un buffer da un byte da dedicare alla verifica della condizione di EOT
 
-module UART_RX_Interface_Pong (
+module UART_RX_Interface (
     input wire clk,
     input wire rst,
     input wire clear_flag,    //Viene da Crypter (attraverso UART) e dice "Ho letto i dati"
