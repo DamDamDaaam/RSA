@@ -11,7 +11,7 @@ module FastModExp (
     input wire [31:0] exponent,
     input wire [31:0] modulo,
     
-    output reg [31:0] result,
+    output wire [31:0] result,
     output reg done
     
     );
@@ -42,7 +42,7 @@ module FastModExp (
         else
             div_en = 1'b1;
     
-    Divider64_32 fme_div (
+    DividerRadix2_64_32 fme_div (
         .aclk                   (clk),
         .aresetn                (~rst),
         
@@ -60,95 +60,70 @@ module FastModExp (
     // FAST MOD EXP - FSM //
     ////////////////////////
     
-    parameter [2:0] IDLE   = 3'h0;
-    parameter [2:0] START  = 3'h1;
-    parameter [2:0] MULT_R = 3'h2;
-    parameter [2:0] MULT_A = 3'h3;
-    parameter [2:0] WAIT   = 3'h4;
-    parameter [2:0] SAVE_R = 3'h5;
-    parameter [2:0] SAVE_A = 3'h6;
-    parameter [2:0] DONE   = 3'h7;
+    parameter [2:0] IDLE   = 3'd0;
+    parameter [2:0] MULT_R = 3'd1;
+    parameter [2:0] MULT_A = 3'd2;
+    parameter [2:0] SAVE_R = 3'd3;
+    parameter [2:0] SAVE_A = 3'd4;
+    
+    //Registri
     
     reg [2:0] state;
-    reg [2:0] next_state;
     
     reg [31:0] a_tmp;
     reg [31:0] r_tmp;
     reg [31:0] n_tmp;
     
-    reg [31:0] nxt_n;
-    reg [6:0] waitCounter;
+    //Prossimi valori dei registri
+    
+    reg [31:0] next_a;
+    reg [31:0] next_r;
+    reg [31:0] next_n;
+    reg [2:0]  next_state;
+    
+    //reg [6:0] waitCounter;
+    
+    assign result = r_tmp;
     
     always @(posedge clk) begin
         if (rst) begin
             a_tmp <= 32'h0;
             r_tmp <= 32'h0;
             n_tmp <= 32'h0;
-            waitCounter <= 7'h0;
+          //waitCounter <= 7'h0;
             state <= IDLE;
         end
         else begin
-            if (state == START) begin
-                a_tmp <= base;
-                n_tmp <= exponent;
-                r_tmp <= 32'h1;
-            end
-            else if (state == MULT_A) begin
-                n_tmp <= nxt_n;
-                waitCounter <= 7'h0;
-            end
-            else if (state == WAIT) begin
-                waitCounter <= waitCounter + 7'h1;
-            end
-            else if (state == SAVE_R) begin
-                r_tmp <= remainder;
-            end
-            else if (state == SAVE_A) begin
-                a_tmp <= remainder;
-            end
-
+            a_tmp <= next_a;
+            r_tmp <= next_r;
+            n_tmp <= next_n;
             state <= next_state;
         end
     end
     
     always @(*) begin
+        mult1 = 32'b0;
+        mult2 = 32'b0;
+        done = 1'b0;
+        next_a = a_tmp;
+        next_r = r_tmp;
+        next_n = n_tmp;
+        
+        next_state = state;
+        
         case (state)
             IDLE: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
-                
-                nxt_n = 32'b0;
-                
-                result = 32'b0;
-                done = 1'b0;
-                
                 if (start) begin
-                    next_state = START;
+                    next_a = base;
+                    next_r = 32'b1;
+                    next_n = exponent;
+                    
+                    next_state = MULT_R;
                 end
-                else begin
-                    next_state = IDLE;
-                end
-            end
-            
-            START: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
-                
-                nxt_n = 32'b0;
-                
-                result = 32'b0;
-                done = 1'b0;
-                
-                next_state = MULT_R;
             end
             
             MULT_R: begin
                 mult1 = r_tmp;
-                
-                nxt_n = 32'b0;
-                
-                result = 32'b0;
-                done = 1'b0;
                 
                 if (n_tmp[0] == 1'b1) begin
                     mult2 = a_tmp;
@@ -164,69 +139,33 @@ module FastModExp (
                 mult1 = a_tmp;
                 mult2 = a_tmp;
                 
-                nxt_n[31] = 1'b0;
-                nxt_n[30:0] = n_tmp[31:1];
+                next_n = n_tmp >> 1;
                 
-                result = 32'b0;
-                done = 1'b0;
-                
-                next_state = WAIT;
-            end
-            
-            WAIT: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
-                
-                nxt_n = 32'b0;
-                
-                result = 32'b0;
-                done = 1'b0;
-                
-                if (waitCounter == 7'd70)
-                    next_state = SAVE_R;
-                else
-                    next_state = WAIT;
+                next_state = SAVE_R;
             end
             
             SAVE_R: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
+                if (div_done) begin
+                    next_r = remainder;
                 
-                nxt_n = 32'b0;
-                
-                result = 32'b0;
-                done = 1'b0;
-                
-                next_state = SAVE_A;
+                    next_state = SAVE_A;
+                end
             end
             
             SAVE_A: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
+                next_a = remainder;
                 
-                nxt_n = 32'b0;
-                
-                result = 32'b0;
-                done = 1'b0;
-                
-                if(n_tmp == 32'b0)
-                    next_state = DONE;
+                if(n_tmp == 32'b0) begin
+                    done = 1'b1;
+                    
+                    next_state = IDLE;
+                end
                 else
                     next_state = MULT_R;
             end
             
-            DONE: begin
-                mult1 = 32'b0;
-                mult2 = 32'b0;
-                
-                nxt_n = 32'b0;
-
-                result = r_tmp;
-                done = 1'b1;
-                
+            default:
                 next_state = IDLE;
-            end
-            
         endcase
     end
     
