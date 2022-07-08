@@ -13,38 +13,47 @@ module UART_RX_Interface (
     output wire [7:0] data_out
     );
 
-    reg [7:0] data_buf;
+    reg [7:0] data_buf = 8'b0;
     reg [7:0] next_data_buf;
     
-    reg flag_reg;
+    reg flag_reg = 1'b0;
     reg next_flag_reg;
     
+    reg eot_reg = 1'b0;
+    reg next_eot_reg;
+    
     assign flag = flag_reg;   
+    assign eot = eot_reg;
     assign data_out = data_buf;
-    assign eot = (data_buf == 8'd4);
     
     always @(posedge clk) begin
         if (rst) begin
             data_buf <= 8'b0;
             flag_reg <= 1'b0;
+            eot_reg <= 1'b0;
         end
         else begin
             data_buf <= next_data_buf;
             flag_reg <= next_flag_reg;
+            eot_reg <= next_eot_reg;
         end
     end
     
     always @(*) begin
         next_data_buf = data_buf;
         next_flag_reg = flag_reg;
+        next_eot_reg = eot_reg;
         
         if (set_flag) begin
             next_data_buf = data_in;
             next_flag_reg = 1'b1;
+            if (data_in == 8'd4)
+                next_eot_reg = 1'b1;
         end
-        else if (clear_flag)
+        else if (clear_flag) begin
             next_flag_reg = 1'b0;
-        
+            next_eot_reg = 1'b0;
+        end
     end
     
 endmodule

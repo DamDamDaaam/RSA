@@ -25,7 +25,7 @@ module UART_tbhw (
         end
     end
     
-    UART_Pong DUT (
+    UART DUT (
         .clk          (clk),
         .rst          (1'b0),
         

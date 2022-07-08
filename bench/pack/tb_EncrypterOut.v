@@ -1,6 +1,6 @@
 `timescale 1ns / 100ps
 
-module tb_WordToBytes;
+module tb_EncrypterOut;
 
     reg clk = 1'b0;
     reg rst = 1'b1;
@@ -38,10 +38,9 @@ module tb_WordToBytes;
     reg [31:0] data_in = 32'b0;
     wire sending_word;
     
-    WordToBytes DUT (
+    EncrypterOut DUT (
         .clk           (clk),
         .rst           (rst),
-        .tx_busy       (tx_busy),
         .tx_done_tick  (tx_done_tick),
         .word_ready    (word_ready),
         .data_in       (data_in),

@@ -7,6 +7,7 @@ module EncrypterIn (
     
     input wire [31:0] n_key,
     
+    input wire eot_in,
     input wire ready_in,
     input wire [7:0] data_in,
     
@@ -37,6 +38,8 @@ module EncrypterIn (
     reg [4:0]  pack_count = 5'b0;
     reg [31:0] pack = 32'b0;    //Shift register per contenere i dati da impacchettare
     
+    reg eot_received = 1'b0;
+    
     //Variabili combinatorie per determinare i prossimi valori dei registri
     
     reg [1:0] next_state;
@@ -46,6 +49,7 @@ module EncrypterIn (
     reg [7:0]  next_data;
     reg [4:0]  next_pack_count;
     reg [31:0] next_pack;
+    reg next_eot_received;
     
     assign fme_data_in = pack;
     assign n_len_out = n_len;
@@ -58,6 +62,8 @@ module EncrypterIn (
             data_buf <= 8'b0;
             pack_count <= 5'b0;
             pack <= 32'b0;
+            eot_received <= 1'b0;
+            
             state <= IDLE;
         end
         else begin
@@ -67,6 +73,8 @@ module EncrypterIn (
             data_buf <= next_data;
             pack_count <= next_pack_count;
             pack <= next_pack;
+            eot_received <= next_eot_received;
+            
             state <= next_state;
         end
     end
@@ -82,10 +90,13 @@ module EncrypterIn (
         next_data = data_buf;
         next_pack_count = pack_count;
         next_pack = pack;
+        next_eot_received = eot_received;
+        
         next_state = state;
         
         case (state)
             IDLE: begin
+                clear_rx_flag = 1'b1; //Per assicurare che a inizio processo sia basso ready_in
                 next_n_len = 5'b0;
                 next_n_key = n_key;
                 if (start)
@@ -110,11 +121,16 @@ module EncrypterIn (
             end
             
             PACK: begin
-                if (pack_count == n_len - 5'd1)
+                if ((pack_count == n_len - 5'd1))
                     next_state = PADDING;
                 else begin
                     if (byte_count == 3'b0) begin
-                        if (ready_in) begin
+                        if (eot_in) begin
+                            clear_rx_flag = 1'b1;
+                            next_eot_received = 1'b1;
+                            next_state = PADDING;
+                        end
+                        else if (ready_in) begin
                             clear_rx_flag = 1'b1;
                             next_byte_count = byte_count + 3'b1;
                             next_pack_count = pack_count + 5'b1;
@@ -129,11 +145,15 @@ module EncrypterIn (
                 end
             end
             
-            PADDING: begin 
+            PADDING: begin
                 if (pack_count == 5'd0) begin
-                    fme_start = 1'b1;      //Potrebbe funzionare al posto dello stato crypt?
-                  //next_state = CRYPT;
-                    next_state = PACK;
+                    fme_start = 1'b1;
+                    if (eot_received) begin
+                        next_eot_received = 1'b0;
+                        next_state = IDLE;
+                    end
+                    else
+                        next_state = PACK;
                 end
                 else begin
                     next_pack_count = pack_count + 5'b1;

@@ -1,9 +1,8 @@
 `timescale 1ns / 100ps
 
-module WordToBytes (
+module EncrypterOut (
     input wire clk,
     input wire rst,
-    input wire tx_busy,       //Viene dalla flag di UART_TX_Interface, dice "Pronto a inviare"
     input wire tx_done_tick,
     input wire word_ready,    //Viene da Crypter e dice "Devi inviare i dati"
     input wire [31:0] data_in,

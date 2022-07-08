@@ -29,8 +29,8 @@ module UART (
     
     
     BaudTicker
-    //#(.BAUD_RATE(19200))
-    #(.BAUD_RATE(625000))     //Baud rate di simulazione
+    #(.BAUD_RATE(19200))
+  //#(.BAUD_RATE(625000))     //Baud rate di simulazione
     baud_ticker (
         .clk  (clk),
         .rst  (rst),
