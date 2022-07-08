@@ -7,27 +7,27 @@ module EnD_KeyGenerator(
     input wire en,            //Collegato al valid di phi
     input wire [31:0] phi,
     input wire [31:0] rng_e,
-    output reg e_key_valid,
+    output wire e_key_valid,
     output reg [31:0] e_key,
-    output reg d_key_valid,
+    output wire d_key_valid,
     output reg [31:0] d_key,
     output reg rng_en
     );
     
     wire [97:0] tickets_in;
     
-    reg  [32:0] t1_ticket_in;       //Input del divider
-    reg  [32:0] t2_ticket_in;       //Input del divider
-    reg  [31:0] e_ticket_in;        //Input del divider
+    reg signed [32:0] t1_ticket_in;       //Input del divider
+    reg signed [32:0] t2_ticket_in;       //Input del divider
+    reg [31:0] e_ticket_in;               //Input del divider
     
     assign tickets_in = {t1_ticket_in, t2_ticket_in, e_ticket_in};
     
     wire [129:0] tickets_out;       //Dati passati attraverso i tuser di EuclidDivider
     
-    wire [32:0] t1_ticket_out;      //Valore di t1 per ExtendedEuclid
-    wire [32:0] t2_ticket_out;      //Valore di t2 per ExtendedEuclid
-    wire [31:0] e_ticket_out;       //Valore iniziale del dividendo (potenziale e_key)
-    wire [31:0] divisor_ticket;     //Valore del divisore necessario durante lo swap
+    wire signed [32:0] t1_ticket_out;      //Valore di t1 per ExtendedEuclid
+    wire signed [32:0] t2_ticket_out;      //Valore di t2 per ExtendedEuclid
+    wire [31:0] e_ticket_out;              //Valore iniziale del dividendo (potenziale e_key)
+    wire [31:0] divisor_ticket;            //Valore del divisore necessario durante lo swap
     
     assign t1_ticket_out  = tickets_out[129:97];
     assign t2_ticket_out  = tickets_out[96:64];
@@ -44,13 +44,14 @@ module EnD_KeyGenerator(
     wire steady_state;    //tvalid dell'output di EuclidDivider
     reg [31:0] dividend;
     reg [31:0] divisor;
-    wire valid;
+    reg keys_valid;
     
-    assign valid = (e_key_valid && d_key_valid);
+    assign e_key_valid = keys_valid;
+    assign d_key_valid = keys_valid;
     
-    assign div_tvalid = en & (~valid);
+    assign div_tvalid = en & (~keys_valid);
     
-    wire [32:0] product;
+    wire signed [32:0] product;
     
     /////////////////////////////
     // DIVIDER Radix-2 IP CORE //  (latenza 35 clk, throughput 1 clk/div)
@@ -74,39 +75,36 @@ module EnD_KeyGenerator(
     );
     
     /////////////////////////////////
-    // MULTIPLIER Parallel IP CORE //  (latenza 6 clk, throughput 1 clk/div)
+    // MULTIPLIER Parallel IP CORE //  (latenza 7 clk, throughput 1 clk/div)
     /////////////////////////////////
     
     Multiplier33_32 end_kg_multiplier (
-        .CLK    (~clk),
+        .CLK    (clk),
         
         .A      (t2_ticket_out),
         .B      (quotient     ),
         
         .P      (product      )
     );
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*    // SOLUZIONE ORIGINARIA (NON FUNZIONA DA SOLA, necessario aggiungere shift register asincrono per t1)
     
     ///////////////////////////////////
-    // SHIFT REGISTER per MULTIPLIER //  (latenza 6 clk)            FUNZIONA MA BISOGNA PASSARE t1 SUL neg_shift
+    // SHIFT REGISTER per MULTIPLIER //  (latenza 7 clk)
     ///////////////////////////////////
     
-//    (* rom_style = "block" *)
-    reg [161:0] shift [5:0];
+    // DA VALUTARE rom_style block SE NECESSARIO PER OTTIMIZZARE AREA
+    reg [161:0] shift [6:0];
     
     always @(posedge clk) begin
-        for(integer i = 0; i < 5; i = i+1) begin
+        for(integer i = 0; i < 6; i = i+1) begin
             shift[i] <= shift[i+1];
         end
-        shift[5] <= {remainder, t1_ticket_out, t2_ticket_out, e_ticket_out, divisor_ticket};
+        shift[6] <= {remainder, t1_ticket_out, t2_ticket_out, e_ticket_out, divisor_ticket};
     end
     
     wire [161:0] tickets_shift;
     wire [31:0] remainder_shift;
-    wire [32:0] t1_ticket_shift;
-    wire [32:0] t2_ticket_shift;
+    wire signed [32:0] t1_ticket_shift;
+    wire signed [32:0] t2_ticket_shift;
     wire [31:0] e_ticket_shift;
     wire [31:0] divisor_ticket_shift;
     
@@ -117,133 +115,18 @@ module EnD_KeyGenerator(
     assign e_ticket_shift       = tickets_shift[63:32];
     assign divisor_ticket_shift = tickets_shift[31:0];
     
-    reg [32:0] t_value;
     
     ////////////////
     // SUBTRACTOR //
     ////////////////
     
-    always @(posedge clk) begin
-        t_value <= t1_ticket_shift - product;
-    end
-    
-*/    
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-
-/*    // SOLUZIONE MINIMALE *FUNZIONANTE* (solo t1 viene passato nello shift register asincrono)
-    
-    ///////////////////////////////////
-    // SHIFT REGISTER per MULTIPLIER //  (latenza 6 clk)
-    ///////////////////////////////////
-    
-//    (* rom_style = "block" *)         // DA VALUTARE SE NECESSARIO PER OTTIMIZZARE AREA
-    reg [128:0] shift [5:0];
+    /*reg [32:0] t_value;
     
     always @(posedge clk) begin
-        for(integer i = 0; i < 5; i = i+1) begin
-            shift[i] <= shift[i+1];
-        end
-        shift[5] <= {remainder, t2_ticket_out, e_ticket_out, divisor_ticket};
-    end
-    
-    ///////////////////////////////////
-    // SHIFT REGISTER per MULTIPLIER //  (latenza 6 clk, sul NEGEDGE per sincronia col MULTIPLIER)
-    ///////////////////////////////////
-    
-//    (* rom_style = "block" *)
-    reg [32:0] neg_shift [5:0];
-    
-    always @(negedge clk) begin
-        for(integer i = 0; i < 5; i = i+1) begin
-            neg_shift[i] <= neg_shift[i+1];
-        end
-        neg_shift[5] <= t1_ticket_out;
-    end
-    
-    wire [161:0] tickets_shift;
-    wire [31:0] remainder_shift;
-    wire [32:0] t2_ticket_shift;
-    wire [31:0] e_ticket_shift;
-    wire [31:0] divisor_ticket_shift;
-    
-    assign tickets_shift        = shift[0];
-    assign remainder_shift      = tickets_shift[128:97];
-    assign t2_ticket_shift      = tickets_shift[96:64];
-    assign e_ticket_shift       = tickets_shift[63:32];
-    assign divisor_ticket_shift = tickets_shift[31:0];
-
-    wire [32:0] t1_neg_shift;
-    
-    assign t1_neg_shift = neg_shift[0];
-    
-    reg [32:0] t1_ticket_shift;
-    
-    
-    //////////////////////////////////
-    // SUBTRACTOR e SINCRONIZZATORE //
-    //////////////////////////////////
-    
-    reg [32:0] t_value;
-    
-    always @(posedge clk) begin
-        t_value <= t1_neg_shift - product;
-        t1_ticket_shift <= t1_neg_shift;
-    end
-*/
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
-    // SOLUZIONE GENERALIZZATA *FUNZIONANTE* (tutte le variabili passano dallo shift register asincrono)
-    
-    ///////////////////////////////////
-    // SHIFT REGISTER per MULTIPLIER //  (latenza 6 clk)
-    ///////////////////////////////////
-    
-//    (* rom_style = "block" *)         // DA VALUTARE SE NECESSARIO PER OTTIMIZZARE AREA
-    reg [161:0] neg_shift [5:0];
-    
-    always @(negedge clk) begin
-        for(integer i = 0; i < 5; i = i+1) begin
-            neg_shift[i] <= neg_shift[i+1];
-        end
-        neg_shift[5] <= {remainder, t1_ticket_out, t2_ticket_out, e_ticket_out, divisor_ticket};
-    end
-    
-    wire [161:0] tickets_neg_shift;
-    wire [31:0] remainder_neg_shift;
-    wire [32:0] t1_ticket_neg_shift;
-    wire [32:0] t2_ticket_neg_shift;
-    wire [31:0] e_ticket_neg_shift;
-    wire [31:0] divisor_ticket_neg_shift;
-    
-    assign tickets_neg_shift        = neg_shift[0];
-    assign remainder_neg_shift      = tickets_neg_shift[161:130];
-    assign t1_ticket_neg_shift      = tickets_neg_shift[129:97];
-    assign t2_ticket_neg_shift      = tickets_neg_shift[96:64];
-    assign e_ticket_neg_shift       = tickets_neg_shift[63:32];
-    assign divisor_ticket_neg_shift = tickets_neg_shift[31:0];
-    
-    
-    //////////////////////////////////
-    // SUBTRACTOR e SINCRONIZZATORE //
-    //////////////////////////////////
-    
-    reg [32:0] t_value;
-    reg [31:0] remainder_shift;
-    reg [32:0] t2_ticket_shift;
-    reg [31:0] e_ticket_shift;
-    reg [31:0] divisor_ticket_shift;
-
-    
-    always @(posedge clk) begin
-        t_value              <= t1_ticket_neg_shift - product;
-        remainder_shift      <= remainder_neg_shift;
-        t2_ticket_shift      <= t2_ticket_neg_shift;
-        e_ticket_shift       <= e_ticket_neg_shift;
-        divisor_ticket_shift <= divisor_ticket_neg_shift;
-    end
-    
-///////////////////////////////////////////////////////////////////////////////////////////////////////////////
-    
+        t_value <= t1_ticket_shift - product; //Forse problema: potrebbe prendere il product
+                                              //precedente a quello giusto
+    end*/
+        
     ///////////////////////////////////////////////////
     // COMBINATIONAL EXTENDED EUCLID ALGORITHM LOGIC //
     ///////////////////////////////////////////////////
@@ -256,10 +139,8 @@ module EnD_KeyGenerator(
             
             rng_en      = 1'b0;
             
-            e_key_valid = 1'b0;
-            e_key       = 32'b0;
-            
-            d_key_valid = 1'b0;
+            keys_valid  = 1'b0;
+            e_key       = 32'b0;            
             d_key       = 32'b0;
             
             t1_ticket_in = 33'b0;
@@ -277,10 +158,8 @@ module EnD_KeyGenerator(
                     
                     rng_en      = 1'b1;   //e abilita l'LFSR.
                     
-                    e_key_valid = 1'b0;
-                    e_key       = 32'b0;
-                    
-                    d_key_valid = 1'b0;
+                    keys_valid = 1'b0;
+                    e_key       = 32'b0;   
                     d_key       = 32'b0;
                     
                     t1_ticket_in = 33'b0;
@@ -288,21 +167,22 @@ module EnD_KeyGenerator(
                 end
                 
                 32'b1: begin                     //Se trovato GCD == 1
-                    dividend    = 32'hCACABEEE;         
-                    divisor     = 32'hCACABEEE;         //non ha importanza cosa mando al divider
-                    e_ticket_in = 32'hCACABEEE;         //perchè tanto la procedura è finita;
+                    dividend    = 32'h0;         
+                    divisor     = 32'h0;         //non ha importanza cosa mando al divider
+                    e_ticket_in = 32'h0;         //perchè tanto la procedura è finita;
                     
                     rng_en      = 1'b0;
                     
-                    e_key_valid = 1'b1;             //segnala che la chiave è valida
-                    e_key       = e_ticket_shift;   //e mandala in output al modulo.
-                    
-                    d_key_valid = 1'b1;
-                    if(t_value[32])                 // DA VALUTARE se inserire nel sincronizzatore
+                    keys_valid  = 1'b1;             //segnala che la chiave è valida
+                    e_key       = e_ticket_shift;  //e mandala in output al modulo.
+                    /*if(t_value[32])                 // DA VALUTARE se inserire nel sincronizzatore
                         d_key   = phi + t_value;    // per avere la somma già pronta al posedge
                     else                            // di d_valid
-                    d_key   = t_value;
-                    
+                    d_key   = t_value;*/
+                    if (t1_ticket_shift < product)
+                        d_key = phi + t1_ticket_shift - product;
+                    else
+                        d_key = t1_ticket_shift - product;
                     t1_ticket_in = 33'b0;
                     t2_ticket_in = 33'b0;
                 end
@@ -314,14 +194,13 @@ module EnD_KeyGenerator(
                     
                     rng_en      = 1'b0;
                     
-                    e_key_valid = 1'b0;
+                    keys_valid  = 1'b0;
                     e_key       = 32'b0;
-                    
-                    d_key_valid = 1'b0;
                     d_key       = 32'b0;
                     
                     t1_ticket_in = t2_ticket_shift;
-                    t2_ticket_in = t_value;
+                    //t2_ticket_in = t_value;
+                    t2_ticket_in = t1_ticket_shift - product;
                 end
             endcase
         end
@@ -335,10 +214,8 @@ module EnD_KeyGenerator(
             
             rng_en      = en;     //e abilita l'LFSR (se E_KeyGenerator è abilitato).
             
-            e_key_valid = 1'b0;
+            keys_valid  = 1'b0;
             e_key       = 32'b0;
-            
-            d_key_valid = 1'b0;
             d_key       = 32'b0;
             
             t1_ticket_in = 33'b0;

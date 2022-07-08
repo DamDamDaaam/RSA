@@ -10,13 +10,13 @@ module KeyGenerator (
     input wire en,
     input wire start,
     
-    output reg [31:0] n_key,
-    output reg [31:0] e_key,
-    output reg [31:0] d_key,
+    output wire [31:0] n_key,
+    output wire [31:0] e_key,
+    output wire [31:0] d_key,
     
-    output reg n_key_valid,
-    output reg e_key_valid,
-    output reg d_key_valid,
+    output wire n_key_valid,
+    output wire e_key_valid,
+    output wire d_key_valid,
     output reg busy         //Unico registro controllato direttamente dal modulo
     );
     
