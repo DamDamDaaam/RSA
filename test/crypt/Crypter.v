@@ -65,7 +65,8 @@ module Crypter (
     // DATA UNPACKING AFTER ENCRYPTION //
     /////////////////////////////////////
     
-    wire sending_word;
+    reg word_ready_enc;
+    wire sending_word_enc;
     wire send_cipher;
     wire [7:0] cipher_byte;
     
@@ -73,10 +74,10 @@ module Crypter (
         .clk           (clk),
         .rst           (rst),
         .tx_done_tick  (tx_done_tick), //Dalla UART
-        .word_ready    (fme_done),
+        .word_ready    (word_ready_enc),
         .data_in       (message_out),
         
-        .sending_word  (sending_word), //Eventualmente usare per debug in hardware
+        .sending_word  (sending_word_enc), //Eventualmente usare per debug in hardware
         .tx_start      (send_cipher),
         .data_out      (cipher_byte)
     );
@@ -103,6 +104,33 @@ module Crypter (
         .fme_start     (fme_start_dec),
         .fme_data_in   (fme_data_in_dec)
     );
+    
+    /////////////////////////////////////
+    // DATA UNPACKING AFTER DECRYPTION //
+    /////////////////////////////////////
+    
+    reg word_ready_dec;
+    wire sending_word_dec;
+    wire send_message;
+    wire [7:0] message_byte;
+    
+    DecrypterOut decrypter_out (
+        .clk          (clk),
+        .rst          (rst),
+        .start        (start_dec),
+        
+        .n_key        (n_key),
+        
+        .word_ready   (word_ready_dec),
+        .data_in      (message_out),
+        
+        .tx_done_tick (tx_done_tick),
+        
+        .sending_word (sending_word_dec),
+        .tx_start     (send_message),
+        .data_out     (message_byte)
+    );
+
     
     ////////////////////////////////////////
     // FAST MODULAR EXPONENTIATION MODULE //
@@ -134,7 +162,7 @@ module Crypter (
     
     wire [7:0] n_len_out;
     
-    assign start_out = send_n_len | send_cipher; //Aggiungere in OR gli altri segnali di tx_start
+    assign start_out = send_n_len | send_cipher | send_message; //Aggiungere in OR gli altri segnali di tx_start
     assign clear_rx_flag = clear_rx_flag_enc | clear_rx_flag_dec;
     
     always @(*) begin
@@ -142,6 +170,8 @@ module Crypter (
             data_out = n_len_out;
         else if (send_cipher)
             data_out = cipher_byte;
+        else if (send_message)
+            data_out = message_byte;
         else
             data_out = 8'b0;
         
@@ -151,6 +181,8 @@ module Crypter (
             key = e_key;
             start_enc = start;
             start_dec = 1'b0;
+            word_ready_enc = fme_done;
+            word_ready_dec = 1'b0;
         end
         else begin
             fme_start = fme_start_dec;
@@ -158,6 +190,8 @@ module Crypter (
             key = d_key;
             start_enc = 1'b0;
             start_dec = start;
+            word_ready_enc = 1'b0;
+            word_ready_dec = fme_done;
         end
     end
     

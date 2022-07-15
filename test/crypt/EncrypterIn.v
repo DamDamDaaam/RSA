@@ -96,11 +96,13 @@ module EncrypterIn (
         
         case (state)
             IDLE: begin
-                clear_rx_flag = 1'b1; //Per assicurare che a inizio processo sia basso ready_in
                 next_n_len = 5'b0;
                 next_n_key = n_key;
-                if (start)
+                if (start) begin
+                    clear_rx_flag = 1'b1; //Per assicurare che a inizio processo sia basso ready_in
+                    
                     next_state = SIZING;
+                end
             end
             
             SIZING: begin

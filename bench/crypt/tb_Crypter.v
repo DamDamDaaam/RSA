@@ -59,8 +59,8 @@ module tb_Crypter;
              #10    tx_done_tick = 1'b0;
         end
     end
-    
-    /*initial begin                     //Testbench per encrypter
+/*
+    initial begin                     //Testbench per encrypter
         #33    rst = 1'b0;
                mode = 1'b1;
                
@@ -72,40 +72,94 @@ module tb_Crypter;
         #10    start = 1'b0;
         
         #500   ready_in = 1'b1;
-               data_in  = 8'b11101011;
+               data_in  = 8'b01101000;  //h     8
         
-        #16000 ready_in = 1'b1;
-               data_in = 8'b11001011;
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01100101;  //e     16
         
-        #16000 ready_in = 1'b1;
-               data_in = 8'b10000011;
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01101100;  //l     24
         
-        #16000 ready_in = 1'b1;
-               data_in = 8'b11111111;
-        
-        #64000 ready_in = 1'b1;
-               data_in  = 8'b00000100;
-               eot_in   = 1'b1;
-        
-        #16000 ready_in = 1'b1;
-               data_in = 8'b11001011;
-        
-        #64000 ready_in = 1'b1;
-               data_in = 8'b10000011;
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01101100;  //l     32 -> 6
         
         #32000 ready_in = 1'b1;
-               data_in = 8'b11111111;
+               data_in  = 8'b01101111;  //o     14
         
-        #16000 $finish;
-    end*/
-    
-    initial begin
+        #500   ready_in = 1'b1;
+               data_in  = 8'b00100000;  //      22
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01110111;  //w     30 -> 4
+        
+        #32000 ready_in = 1'b1;
+               data_in  = 8'b01101111;  //o     12
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01110010;  //r     20
+
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01101100;  //l     28 -> 2
+        
+        #32000 ready_in = 1'b1;
+               data_in  = 8'b01100100;  //d     10
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b00100001;  //!     18
+        
+        #500   ready_in = 1'b1;
+               data_in  = 8'b00100000;  //      26 -> 0
+        
+        #32000   ready_in = 1'b1;
+               data_in  = 8'b01101000;  //h     8
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01100101;  //e     16
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01101100;  //l     24
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01101100;  //l     32 -> 6
+        
+        #32000 ready_in = 1'b1;
+               data_in  = 8'b01101111;  //o     14
+        
+        #500   ready_in = 1'b1;
+               data_in  = 8'b00100000;  //      22
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01110111;  //w     30 -> 4
+        
+        #32000 ready_in = 1'b1;
+               data_in  = 8'b01101111;  //o     12
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01110010;  //r     20
+
+        #500 ready_in = 1'b1;
+               data_in  = 8'b01101100;  //l     28 -> 2
+        
+        #32000 ready_in = 1'b1;
+               data_in  = 8'b01100100;  //d     10
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b00100001;  //!     18
+        
+        #500 ready_in = 1'b1;
+               data_in  = 8'b00000100;  //EOT
+               eot_in   = 1'b1;
+        
+        #32000 $finish;
+    end
+*/
+    initial begin                   //Testbench per decrypter
         #33    rst = 1'b0;  
-                                       
+        
         #100   n_key = 32'd96022049;
                e_key = 32'd88637233;
                d_key = 32'd39370597;
-               
+        
         #10    start = 1'b1;
         #10    start = 1'b0;
         
@@ -113,83 +167,120 @@ module tb_Crypter;
         #500   ready_in = 1'b1;
                data_in  = 8'b00000000;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b00000000;
+        #500   ready_in = 1'b1;
+               data_in  = 8'b00000000;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b00000000;
+        #500   ready_in = 1'b1;
+               data_in  = 8'b00000000;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b00000100;
+        #500   ready_in = 1'b1;
+               data_in  = 8'b00001000;
         
         //PRIMA WORD
         #1000 ready_in = 1'b1;
-               data_in  = 8'b00000100;
+               data_in  = 8'b00000000;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11001011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11100101;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b10000011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11111001;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11111111;
-        
-        #500 ready_in = 1'b1;
-               data_in = 8'b11111111;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11111011;
         
         //SECONDA
-        #1000 ready_in = 1'b1;
-               data_in  = 8'b00000100;
+        #16000 ready_in = 1'b1;
+               data_in  = 8'b00000001;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11001011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11100011;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b10000011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b00111010;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11111111;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11010011;
         
         //TERZA
-        #1000 ready_in = 1'b1;
+        #16000 ready_in = 1'b1;
                data_in  = 8'b00000100;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11001011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01000010;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b10000011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01110101;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11111111;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01001010;
         
         //QUARTA
-        #1000 ready_in = 1'b1;
-               data_in  = 8'b00000100;
+        #16000 ready_in = 1'b1;
+               data_in  = 8'b00000001;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11001011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01010110;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b10000011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01101000;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11111111;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b00100110;
         
         //QUINTA
-        #1000 ready_in = 1'b1;
+        #16000 ready_in = 1'b1;
+               data_in  = 8'b00000000;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11100101;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11111001;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11111011;
+        
+        //SESTA
+        #16000 ready_in = 1'b1;
+               data_in  = 8'b00000001;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11100011;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b00111010;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11010011;
+        
+        //SETTIMA
+        #16000 ready_in = 1'b1;
                data_in  = 8'b00000100;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11001011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01000010;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b10000011;
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01110101;
         
-        #500 ready_in = 1'b1;
-               data_in = 8'b11111111;
-        #1000 $finish;
-    end    
-    
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01001010;
+        
+        //OTTAVA
+        #16000 ready_in = 1'b1;
+               data_in  = 8'b00000100;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11010011;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b01011001;
+        
+        #16000 ready_in = 1'b1;
+               data_in = 8'b11010101;
+        
+        #80000 $finish;
+    end
+
 endmodule

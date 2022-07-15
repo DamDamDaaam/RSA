@@ -25,6 +25,8 @@ module DecrypterIn (
     reg [1:0]  pack_count = 2'b0;
     reg [31:0] pack = 32'b0;
     
+    reg check_reg = 1'b0;
+    
     reg state = IDLE;
     
     //Prossimi valori dei registri
@@ -33,6 +35,7 @@ module DecrypterIn (
     reg [31:0] next_word_count;
     reg [31:0] next_pack;
     reg [1:0]  next_pack_count;
+    reg next_check;
     reg next_state;
     
     assign fme_data_in = pack;
@@ -44,6 +47,8 @@ module DecrypterIn (
             pack_count <= 2'b0;
             pack <= 32'b0;
             
+            check_reg <= 1'b0;
+            
             state <= IDLE;
         end
         else begin
@@ -51,6 +56,8 @@ module DecrypterIn (
             word_count <= next_word_count;
             pack_count <= next_pack_count;
             pack <= next_pack;
+            
+            check_reg <= next_check;
             
             state <= next_state;
         end
@@ -64,37 +71,48 @@ module DecrypterIn (
         next_pack_count = pack_count;
         next_pack = pack;
         
+        next_check = check_reg;
+        
         next_state = state;
         
         case (state)
             IDLE: begin
-                clear_rx_flag = 1'b1;   //Per assicurare che a inizio processo sia basso ready_in
                 next_cipher_len = 32'b0;
                 next_word_count = 32'b0;
                 next_pack_count = 2'b0;
                 next_pack = 32'b0;
-                if (start)
+                if (start) begin
+                    clear_rx_flag = 1'b1;   //Per assicurare che a inizio processo sia basso ready_in
+                    
                     next_state = LOAD;
+                end
             end
             
             LOAD: begin
-                if ((word_count == cipher_len) && (cipher_len != 32'b0))
-                    next_state = IDLE;
-                if (ready_in) begin
+                if ((word_count == cipher_len) && (cipher_len != 32'b0))    //se ha decifrato tutte le word da 32 bit...
+                    next_state = IDLE;                                      //...va in IDLE
+                if (ready_in) begin                         //se c'è un byte in ingresso...
                     clear_rx_flag = 1'b1;
                     
                     next_pack[31:8] = pack[23:0];
-                    next_pack[7:0] = data_in[7:0];
+                    next_pack[7:0] = data_in[7:0];          //...lo shifta nel pack da destra verso sinistra...
                     next_pack_count = pack_count + 2'b1;
                     
-                    if (pack_count == 2'b0) begin
-                        if (cipher_len == 32'b0)
-                            next_cipher_len = pack;
-                        else begin
-                            fme_start = 1'b1;
-                            next_word_count = word_count + 32'b1;
+                    next_check = 1'b1;                      //...e al prossimo clock controlla
+                end
+                else if (check_reg) begin
+                    if (pack_count == 2'b0) begin                   //quando ha ricevuto tutta una word da 32 bit:
+                        if (cipher_len == 32'b0) begin              //- se non sa ancora quanto è lungo il messaggio (prima iterazione)...
+                            next_cipher_len = pack;                 //...allora la word ricevuta è il numero di word e lo salva
+                            next_pack = 32'b0;
+                        end
+                        else begin                                  //- altrimenti la parola è da decifrare, quindi...
+                            fme_start = 1'b1;                       //...avvia il decrypting...
+                            next_word_count = word_count + 32'b1;   //...e conta una parola in più
                         end
                     end
+                    
+                    next_check = 1'b0;
                 end
             end
         endcase
