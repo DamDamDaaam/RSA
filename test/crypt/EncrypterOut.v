@@ -1,5 +1,7 @@
 `timescale 1ns / 100ps
 
+//Prende il cifrato da FastModExp e lo invia sulla UART
+
 module EncrypterOut (
     input wire clk,
     input wire rst,

@@ -1,5 +1,7 @@
 `timescale 1ns / 100ps
 
+//Prende il testo in chiaro dalla UART e lo carica in FastModExp
+
 module EncrypterIn (
     input wire clk,
     input wire rst,

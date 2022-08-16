@@ -1,5 +1,7 @@
 `timescale 1ns / 100ps
 
+//Prende il cifrato dalla UART e lo carica in FastModExp
+
 module DecrypterIn (
     input wire clk,
     input wire rst,
@@ -11,7 +13,10 @@ module DecrypterIn (
     output reg clear_rx_flag,
     
     output reg fme_start,
-    output reg [31:0] fme_data_in
+    output reg [31:0] fme_data_in,
+    //TEST
+    output reg last_word_tick
+    //TEST
     );
     
     parameter IDLE = 1'b0;
@@ -66,8 +71,12 @@ module DecrypterIn (
     always @(*) begin
         clear_rx_flag = 1'b0;
         fme_start = 1'b0;
+        //TEST
+        last_word_tick = 1'b0;
+        //TEST
         
         next_cipher_len = cipher_len;
+        next_word_count = word_count;
         next_pack_count = pack_count;
         next_pack = pack;
         
@@ -90,7 +99,10 @@ module DecrypterIn (
             
             LOAD: begin
                 if ((word_count == cipher_len) && (cipher_len != 32'b0))    //se ha decifrato tutte le word da 32 bit...
-                    next_state = IDLE;                                      //...va in IDLE
+                    //TEST
+                    last_word_tick = 1'b1;                                  //...notifica con un tick che ha caricato l'ultima word...
+                    //TEST
+                    next_state = IDLE;                                      //...e va in IDLE
                 if (ready_in) begin                         //se c'è un byte in ingresso...
                     clear_rx_flag = 1'b1;
                     

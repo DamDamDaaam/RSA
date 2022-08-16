@@ -15,7 +15,7 @@ module Crypter (
   //input wire en,          // collegabile direttamente a SW[3] (mode[1])
     input wire mode,        // collegabile direttamente a SW[2] (mode[0])
     
-    input wire start,       // da collegare a start di KeyManager E non busy
+    input wire start,       // da collegare a start di KeyManager E non busy //TODO TEST: non collegare a ~busy per evitare feedback molesto
     
     input wire [31:0] n_key,
     input wire [31:0] e_key,
@@ -28,8 +28,9 @@ module Crypter (
     input wire tx_done_tick,
     output reg start_out,
     output reg [7:0] data_out,
-    output wire clear_rx_flag
+    output wire clear_rx_flag,
     
+    output reg busy
     );
     
     /////////////////////////////////
@@ -38,6 +39,7 @@ module Crypter (
     
     reg  start_enc;
     reg  clear_rx_flag_enc;
+    wire [7:0] n_len_out;
     wire fme_start_enc;
     wire [31:0] fme_data_in_enc;
     
@@ -49,7 +51,7 @@ module Crypter (
         .n_key         (n_key),
         
         .eot_in        (eot_in),
-        .ready_in      (ready_in),  //Questo deve arrivare da UART_Pong (rx_flag)
+        .ready_in      (ready_in),  //Questo deve arrivare da UART (rx_flag)
         .data_in       (data_in),   //Dati letti dalla UART
         
         
@@ -66,6 +68,7 @@ module Crypter (
     /////////////////////////////////////
     
     reg word_ready_enc;
+    wire [31:0] message_out;
     wire sending_word_enc;
     wire send_cipher;
     wire [7:0] cipher_byte;
@@ -90,6 +93,9 @@ module Crypter (
     reg  clear_rx_flag_dec;
     wire fme_start_dec;
     wire [31:0] fme_data_in_dec;
+    //TEST
+    wire last_word_tick;
+    //TEST
     
     DecrypterIn decrypter_in (
         .clk           (clk),
@@ -102,7 +108,10 @@ module Crypter (
         .clear_rx_flag (clear_rx_flag_dec),
         
         .fme_start     (fme_start_dec),
-        .fme_data_in   (fme_data_in_dec)
+        .fme_data_in   (fme_data_in_dec),
+        //TEST
+        .last_word_tick (last_word_tick)
+        //TEST
     );
     
     /////////////////////////////////////
@@ -113,6 +122,9 @@ module Crypter (
     wire sending_word_dec;
     wire send_message;
     wire [7:0] message_byte;
+    //TEST
+    wire dec_done_tick;
+    //TEST
     
     DecrypterOut decrypter_out (
         .clk          (clk),
@@ -124,11 +136,18 @@ module Crypter (
         .word_ready   (word_ready_dec),
         .data_in      (message_out),
         
+        //TEST
+        .last_word_tick (last_word_tick),
+        //TEST
+        
         .tx_done_tick (tx_done_tick),
         
         .sending_word (sending_word_dec),
         .tx_start     (send_message),
-        .data_out     (message_byte)
+        .data_out     (message_byte),
+        //TEST
+        .done_tick    (dec_done_tick)
+        //TEST
     );
 
     
@@ -140,7 +159,6 @@ module Crypter (
     reg [31:0] fme_data_in;
     reg [31:0] key;
     
-    wire [31:0] message_out;
     wire fme_done;
         
     FastModExp fme_crypt (
@@ -160,9 +178,7 @@ module Crypter (
     // MULTIPLEXERS FOR TX DATA AND FastModExp //
     /////////////////////////////////////////////
     
-    wire [7:0] n_len_out;
-    
-    assign start_out = send_n_len | send_cipher | send_message; //Aggiungere in OR gli altri segnali di tx_start
+    assign start_out = send_n_len | send_cipher | send_message;
     assign clear_rx_flag = clear_rx_flag_enc | clear_rx_flag_dec;
     
     always @(*) begin
@@ -194,5 +210,43 @@ module Crypter (
             word_ready_dec = fme_done;
         end
     end
+    
+    //////////////////////////
+    // BUSY SIGNAL HANDLING //
+    //////////////////////////
+    
+    reg eot_received = 1'b0;
+    reg sending_last_word = 1'b0;
+    
+    always @(posedge clk) begin
+        if (rst) begin
+            busy <= 1'b0;
+            eot_received <= 1'b0;
+            sending_last_word <= 1'b0;
+        end
+        else begin
+            if (start)
+                busy <= 1'b1;
+            if (mode) begin    //Gestione del busy per il crittaggio
+                if (eot_in)
+                    eot_received <= 1'b1;
+                if (eot_received & word_ready_enc)
+                    sending_last_word <= 1'b1;
+                if (sending_last_word & ~sending_word_enc) begin
+                    busy <= 1'b0;
+                    eot_received <= 1'b0;
+                    sending_last_word <= 1'b0;
+                end
+            end
+            //TEST
+            else begin         //Gestione del busy per il decrittaggio
+                if (dec_done_tick)
+                    busy <= 1'b0;
+            end
+            //TEST
+        end
+    end
+    
+    //TODO testare il busy. Notare che vi sono modifiche da testare in Crypter, DecrypterIn e DecrypterOut
     
 endmodule
