@@ -1,12 +1,12 @@
 `timescale 1ns / 100ps
 
-//TODO correggere commenti outdated
-
 //Il modulo cripta e decripta stream di bit prodotti leggendo i byte dal primo all'ultimo e leggendo ogni byte da LSB a MSB. Questo causa uno scrambling dei valori durante l'impacchettamento, ma al momento di decriptare questo scrambling viene annullato.
 
 //I valori che vengono criptati sono blocchi da 32 bit ottenuti aggiungendo zeri di padding a sinistra fino ad arrivare a 32 dopo aver impacchettato un numero di bit di input pari al numero di bit della chiave N meno 1
 
-//I valori che vengono decriptati 
+//I valori che vengono decriptati sono blocchi da 32 bit che devono essere stati generati da questo dispositivo o da uno uguale. Il risultato della decrittografia può terminare con fino a 3 null character in eccesso rispetto al messaggio originale.
+
+//Non devono essere criptati con questo dispositivo file che contengono i caratteri NUL e/o EOT
 
 module Crypter (
     
@@ -15,7 +15,7 @@ module Crypter (
   //input wire en,          // collegabile direttamente a SW[3] (mode[1])
     input wire mode,        // collegabile direttamente a SW[2] (mode[0])
     
-    input wire start,       // da collegare a start di KeyManager E non busy //TODO TEST: non collegare a ~busy per evitare feedback molesto
+    input wire start,
     
     input wire [31:0] n_key,
     input wire [31:0] e_key,
@@ -93,25 +93,23 @@ module Crypter (
     reg  clear_rx_flag_dec;
     wire fme_start_dec;
     wire [31:0] fme_data_in_dec;
-    //TEST
     wire last_word_tick;
-    //TEST
     
     DecrypterIn decrypter_in (
-        .clk           (clk),
-        .rst           (rst),
-        .start         (start_dec),
+        .clk            (clk),
+        .rst            (rst),
+        .start          (start_dec),
         
-        .ready_in      (ready_in),
-        .data_in       (data_in),
+        .ready_in       (ready_in),
+        .data_in        (data_in),
         
-        .clear_rx_flag (clear_rx_flag_dec),
+        .clear_rx_flag  (clear_rx_flag_dec),
         
-        .fme_start     (fme_start_dec),
-        .fme_data_in   (fme_data_in_dec),
-        //TEST
+        .fme_start      (fme_start_dec),
+        .fme_data_in    (fme_data_in_dec),
+        
         .last_word_tick (last_word_tick)
-        //TEST
+        
     );
     
     /////////////////////////////////////
@@ -127,29 +125,26 @@ module Crypter (
     //TEST
     
     DecrypterOut decrypter_out (
-        .clk          (clk),
-        .rst          (rst),
-        .start        (start_dec),
+        .clk            (clk),
+        .rst            (rst),
+        .start          (start_dec),
         
-        .n_key        (n_key),
+        .n_key          (n_key),
         
-        .word_ready   (word_ready_dec),
-        .data_in      (message_out),
+        .word_ready     (word_ready_dec),
+        .data_in        (message_out),
         
-        //TEST
         .last_word_tick (last_word_tick),
-        //TEST
         
-        .tx_done_tick (tx_done_tick),
+        .tx_done_tick   (tx_done_tick),
         
-        .sending_word (sending_word_dec),
-        .tx_start     (send_message),
-        .data_out     (message_byte),
-        //TEST
-        .done_tick    (dec_done_tick)
-        //TEST
+        .sending_word   (sending_word_dec),
+        .tx_start       (send_message),
+        .data_out       (message_byte),
+        
+        .done_tick      (dec_done_tick)
+        
     );
-
     
     ////////////////////////////////////////
     // FAST MODULAR EXPONENTIATION MODULE //
@@ -238,15 +233,11 @@ module Crypter (
                     sending_last_word <= 1'b0;
                 end
             end
-            //TEST
             else begin         //Gestione del busy per il decrittaggio
                 if (dec_done_tick)
                     busy <= 1'b0;
             end
-            //TEST
         end
     end
-    
-    //TODO testare il busy. Notare che vi sono modifiche da testare in Crypter, DecrypterIn e DecrypterOut
     
 endmodule
