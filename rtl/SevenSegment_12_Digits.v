@@ -25,16 +25,6 @@ module SevenSegment_12_Digits (
     
     ) ;
     
-//    assign segA = 1'b0;
-//    assign segB = 1'b0;
-//    assign segC = 1'b0;
-//    assign segD = 1'b0;
-//    assign segE = 1'b0;
-//    assign segF = 1'b0;
-//    assign segG = 1'b0;
-//    assign DP   = 1'b0;
-    
-
     reg [25:0] count = 'b0 ;                        // matchare lunghezza con count e forzare rollover a 12
     
     always @(posedge clk) begin

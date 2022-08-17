@@ -19,68 +19,29 @@
 module KeyManager(
     
     input wire clk,
+    input wire rst,
     input wire [1:0] mode,          // SW[3:2]
-/////////////////   TEST    ////////////////
- //   input wire key_valid_test,      // SW[1]
-/////////////////   TEST    ////////////////
     input wire select_key,          // SW[0]
     
-    input wire del_but,             // BTN[3] ( del    )
-    input wire start_but,               // BTN[2] ( start  )
-    input wire move_left_but,       // BTN[1] ( select )
-    input wire add_one_but,         // BTN[0] ( add    )
+    input wire del,                 // BTN[3] ( del    )    //Bottoni già debounced
+    input wire start,               // BTN[2] ( start  )
+    input wire move_left,           // BTN[1] ( select )
+    input wire add_one,             // BTN[0] ( add    )
     
     output  reg typing,             // flag per comunicare che si sta editando una chiave
     output wire [3:0] digit,        // cifra che si sta editando
     output wire [31:0] writing,     // valore che si sta editando
     
-    output reg [31:0] n_key,
+    output reg [31:0] n_key,        //Banchi di flip flop che tengono memoria delle chiavi
     output reg [31:0] e_key,
-    output reg [31:0] d_key
+    output reg [31:0] d_key,
     
-    );
-    
-    wire delete;
-    wire move_left;
-    wire add_one;
-    wire start;
-    
-    Debouncer delete_deb (
-        
-        .clk    (           clk ),
-        .button (       del_but ),
-        .pulse  (        delete )
-        
-    );
-
-    Debouncer move_left_deb (
-        
-        .clk    (           clk ),
-        .button ( move_left_but ),
-        .pulse  (     move_left )
-        
-    );
-    
-    Debouncer add_one_deb (
-        
-        .clk    (           clk ),
-        .button (   add_one_but ),
-        .pulse  (       add_one )
-        
-    );
-    
-    Debouncer start_deb (
-        
-        .clk    (           clk ),
-        .button (     start_but ),
-        .pulse  (         start )
-        
+    output wire kg_busy             // informa che KeyGenerator sta calcolando chiavi
     );
     
     reg  kg_start;                  // dà al KeyGenerator il via per generare chiavi
     reg  kg_rst;                    // rst di KeyGenerator
     reg  kg_en;                     // enable di KeyGenerator
-    wire kg_busy;                   // informa che KeyGenerator sta calcolando chiavi
     
     wire [31:0] n_key_gen;          // n_key generata dal KeyGenerator
     wire [31:0] e_key_gen;          // e_key generata dal KeyGenerator
@@ -92,7 +53,7 @@ module KeyManager(
     
     KeyGenerator keygen (
         .clk         (clk),
-        .rst         (kg_rst),
+        .rst         (rst | kg_rst),
         .en          (kg_en),
         .start       (kg_start),
         
@@ -106,16 +67,6 @@ module KeyManager(
         .busy        (kg_busy)
     );
     
-/////////////////   TEST    ////////////////
-/*    assign n_key_valid = key_valid_test;
-    assign e_key_valid = key_valid_test;
-    assign d_key_valid = key_valid_test;
-    
-    assign n_key_gen = 32'd666666666;
-    assign e_key_gen = 32'd123456789;
-    assign d_key_gen = 32'd987654321;*/
-/////////////////   TEST    ////////////////
-    
     reg [3:0] position;
     reg [3:0] value;
     reg [31:0] tot;
@@ -123,11 +74,21 @@ module KeyManager(
     assign digit = position;
     assign writing = tot;
     
-    
     always @(posedge clk) begin
-        case(mode[1:0])
-            2'b00 : begin                       // Spento   ->  RESET GLOBALE
-                typing <= 'b0;
+        if (rst) begin
+            typing <= 'b0;                     // Reset globale (mode = 0 oppure ~locked)
+                
+            n_key <= 'b0;
+            e_key <= 'b0;
+            d_key <= 'b0;
+            
+            kg_start <= 1'b0;
+            kg_rst <= 1'b1;
+            kg_en  <= 1'b0;
+        end
+        else case(mode[1:0])
+            2'b00 : begin                       // Mode su "reset" ma rst spento.
+                typing <= 'b0;                  // Se tutto va bene condizione mai verificata
                 
                 n_key <= 'b0;
                 e_key <= 'b0;
@@ -150,7 +111,7 @@ module KeyManager(
                 if(d_key_valid)
                     d_key <= d_key_gen;
                                 
-                if(delete) begin                    // se si preme delete resetta il KeyGenerator
+                if(del) begin                    // se si preme delete resetta il KeyGenerator
                     kg_rst <= 1'b1;
                     kg_start <= 1'b0;
                 end
@@ -170,7 +131,7 @@ module KeyManager(
                 kg_en  <= 1'b0;
                 
                 if(select_key == 1'b0) begin    // mostra/modifica chiave n
-                    if(delete) begin                                    // premere delete...
+                    if(del) begin                                       // premere delete...
                         if(typing == 1'b0)                              // ...mentre non si sta scrivendo...
                             typing <= 1'b1;                             // ...avvia la scrittura...
                         else begin                  // (se si sta scrivendo...
@@ -186,7 +147,7 @@ module KeyManager(
                     end
                 end
                 else begin                  // mostra/modifica chiave e
-                    if(delete) begin                                    // premere delete...
+                    if(del) begin                                       // premere delete...
                         if(typing == 1'b0)                              // ...mentre non si sta scrivendo...
                             typing <= 1'b1;                             // ...avvia la scrittura...
                         else begin                  // (se si sta scrivendo...
@@ -209,7 +170,7 @@ module KeyManager(
                 kg_en  <= 1'b0;
                 
                 if(select_key == 1'b0) begin    // mostra/modifica chiave n
-                    if(delete) begin                                    // premere delete...
+                    if(del) begin                                       // premere delete...
                         if(typing == 1'b0)                              // ...mentre non si sta scrivendo...
                             typing <= 1'b1;                             // ...avvia la scrittura...
                         else begin                  // (se si sta scrivendo...
@@ -225,7 +186,7 @@ module KeyManager(
                     end
                 end
                 else begin                  // mostra/modifica chiave d
-                    if(delete) begin                                    // premere delete...
+                    if(del) begin                                       // premere delete...
                         if(typing == 1'b0)                              // ...mentre non si sta scrivendo...
                             typing <= 1'b1;                             // ...avvia la scrittura...
                         else begin                  // (se si sta scrivendo...
@@ -252,11 +213,6 @@ module KeyManager(
         if(typing) begin
             if(move_left) begin
                 value <= 'b0;
-//                if(position == 4'd9) begin
-//                    position <= 4'd0;               // dare conferma del valore
-//                    value <= 4'd0;
-//                end
-//                else
                 position <= position + 4'd1;
             end
             if(add_one) begin

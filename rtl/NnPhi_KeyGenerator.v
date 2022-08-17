@@ -1,5 +1,10 @@
 `timescale 1ns / 100ps
 
+//Modulo che genera le chiavi
+//n = p * q
+//phi = (p - 1) * (q - 1)
+//con p e q numeri primi casuali di 16 bit o meno
+
 module NnPhi_KeyGenerator(
     input wire clk,
     input wire rst,

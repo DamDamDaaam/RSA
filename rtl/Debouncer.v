@@ -1,21 +1,13 @@
-//
-// Simple push-button debouncer with 0.5 kHz or 1 kHz low sampling frequency.
-//
-// Luca Pacher - pacher@to.infn.it
-// Spring 2021
-//
-
-
 `timescale 1ns / 100ps
 
-module Debouncer (
+//Debouncer ispirato al modello visto in aula, con aggiunta di ulteriori 3 flip flop
+//per garantire una durata dell'impulso pari a un periodo di clock
 
+module Debouncer (
    input  wire clk,            // assume 100 MHz clock frequency from on-board oscillator
    input  wire button,         // glitching push-button input
    output wire pulse           // clean single-pulse output
-
    ) ;
-
 
    ////////////////////////////////////////
    //   low-frequency 'tick' generator   //
@@ -25,7 +17,6 @@ module Debouncer (
 
    TickCounter #(.MAX(1000001)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 0.5 kHz clock-enable
 //   TickCounter #(.MAX(13)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 100 MHz clock-enable (for simulation purpose)
-
 
    ////////////////////////////////
    //   single-pulse generator   // tick length = period of TickCounter

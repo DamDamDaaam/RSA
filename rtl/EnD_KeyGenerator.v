@@ -75,7 +75,7 @@ module EnD_KeyGenerator(
     );
     
     /////////////////////////////////
-    // MULTIPLIER Parallel IP CORE //  (latenza 7 clk, throughput 1 clk/div)
+    // MULTIPLIER Parallel IP CORE //  (latenza 7 clk, throughput 1 clk/mult)
     /////////////////////////////////
     
     Multiplier33_32 end_kg_multiplier (
@@ -91,7 +91,6 @@ module EnD_KeyGenerator(
     // SHIFT REGISTER per MULTIPLIER //  (latenza 7 clk)
     ///////////////////////////////////
     
-    // DA VALUTARE rom_style block SE NECESSARIO PER OTTIMIZZARE AREA
     reg [161:0] shift [6:0];
     
     always @(posedge clk) begin
@@ -114,18 +113,6 @@ module EnD_KeyGenerator(
     assign t2_ticket_shift      = tickets_shift[96:64];
     assign e_ticket_shift       = tickets_shift[63:32];
     assign divisor_ticket_shift = tickets_shift[31:0];
-    
-    
-    ////////////////
-    // SUBTRACTOR //
-    ////////////////
-    
-    /*reg [32:0] t_value;
-    
-    always @(posedge clk) begin
-        t_value <= t1_ticket_shift - product; //Forse problema: potrebbe prendere il product
-                                              //precedente a quello giusto
-    end*/
         
     ///////////////////////////////////////////////////
     // COMBINATIONAL EXTENDED EUCLID ALGORITHM LOGIC //
@@ -173,12 +160,8 @@ module EnD_KeyGenerator(
                     
                     rng_en      = 1'b0;
                     
-                    keys_valid  = 1'b1;             //segnala che la chiave è valida
-                    e_key       = e_ticket_shift;  //e mandala in output al modulo.
-                    /*if(t_value[32])                 // DA VALUTARE se inserire nel sincronizzatore
-                        d_key   = phi + t_value;    // per avere la somma già pronta al posedge
-                    else                            // di d_valid
-                    d_key   = t_value;*/
+                    keys_valid  = 1'b1;             //segnala che le chiavi sono valide,
+                    e_key       = e_ticket_shift;   // e le manda in output al modulo
                     if (t1_ticket_shift < product)
                         d_key = phi + t1_ticket_shift - product;
                     else
