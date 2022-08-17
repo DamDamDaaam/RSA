@@ -52,7 +52,7 @@ WORK_DIR := work
 
 # uncomment these if you are testing a module in the test folder
 RTL_DIR := rtl
-SIM_DIR := bench/keygen
+SIM_DIR := bench/crypt
 
 # uncomment these to compile the entire project
 #RTL_DIR := rtl
@@ -83,7 +83,7 @@ LOG_DIR  := log
 RTL_TOP_MODULE := RSA
 
 ## specify top-level testbench module (this is the target module for the xelab executable)
-SIM_TOP_MODULE := tb_KeyGenerator
+SIM_TOP_MODULE := tb_Crypter
 
 
 ##

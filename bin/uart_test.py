@@ -2,7 +2,7 @@ import serial
 import time
 
 ser = serial.Serial(port="/dev/ttyUSB1", baudrate=9600)
-to_send = "Sting riconoscibile Sting riconoscibile String riconoscibile String riconoscibile String riconoscibile String riconoscibile'+-;:,.-_?!%&^"
+to_send = "String riconoscibile String riconoscibile String riconoscibile String riconoscibile String riconoscibile String riconoscibile'+-;:,.-_?!%&^"
 message = b""
 encoded_to_send = to_send.encode()
 
