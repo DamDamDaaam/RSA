@@ -1,12 +1,16 @@
 `timescale 1ns / 100ps
 
-module BaudTicker #(parameter integer BAUD_RATE)(
+module BaudTicker
+    #(
+    parameter integer BAUD_RATE,
+    parameter real CLOCK_FREQ
+    )(
     input wire clk,
     input wire rst,
     output reg tick
     );
 
-    parameter integer clk_per_baud = 100000000.0 / (16.0 * BAUD_RATE);
+    parameter integer clk_per_baud = CLOCK_FREQ / (16.0 * BAUD_RATE);
     
     reg [$clog2(clk_per_baud) - 1 : 0] bt_counter = 'b0;
     

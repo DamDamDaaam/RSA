@@ -4,7 +4,8 @@
 //Mondo esterno ----> Receiver ----> RX Interface ----> Crypter
 //Crypter ----> Transmitter ----> Mondo esterno
 
-module UART (
+module UART #(parameter real CLOCK_FREQUENCY_HZ)
+    (
     input wire clk,
     input wire rst,
     
@@ -13,6 +14,7 @@ module UART (
     
     input wire rx_used_tick,   //Pin relativi alla ricezione
     output wire rx_readable,
+    output wire eot,
     output wire [7:0] rx_data,
     
     input wire tx_start,       //Pin relativi alla trasmissione
@@ -29,8 +31,8 @@ module UART (
     
     
     BaudTicker
-    #(.BAUD_RATE(19200))
-  //#(.BAUD_RATE(625000))     //Baud rate di simulazione
+    #(.BAUD_RATE(19200), .CLOCK_FREQ(CLOCK_FREQUENCY_HZ))
+  //#(.BAUD_RATE(625000), .CLOCK_FREQ(CLOCK_FREQUENCY_HZ))     //Baud rate di simulazione
     baud_ticker (
         .clk  (clk),
         .rst  (rst),
@@ -66,6 +68,7 @@ module UART (
         .data_in     (rx_data_unbuffered),
         
         .flag        (rx_readable),
+        .eot         (eot),
         .data_out    (rx_data)
     );
     
