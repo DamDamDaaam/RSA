@@ -142,30 +142,39 @@ module DecrypterOut (
             
             SHIFT: begin
                 if (flag_reg) begin
-                    if (pack_count == n_len - 5'b1) begin   //(se ha già shiftato tutte le cifre valide (ossia non di padding)...
-                        next_flag = 1'b0;                   //...aspetta una nuova word)
-                        if (almost_done_reg) begin          //Se il processo era "quasi finito"...
-                            done_tick = 1'b1;               //...ora è finito. Lo si comunica con un tick...
-                            next_almost_done = 1'b0;        //...si resetta la flag di "quasi finito"...
-                            
-                            next_state = IDLE;              //...e si torna in IDLE
-                        end
-                    end
-                    else begin
-                        if (byte_count == 3'b0) begin                               //se il byte è pronto...
-                            if (~tx_busy) begin                                     //...e non se ne sta inviando un altro...
-                                tx_start = 1'b1;                                    //...lo manda...
-                                next_tx_busy = 1'b1;                                //...e comunica che il tx è occupato...
-                                {next_pack, next_byte} = {pack_reg, byte_reg} >> 1; //...quindi shifta...
-                                next_pack_count = pack_count + 5'b1;                //...e incrementa...
-                                next_byte_count = byte_count + 3'b1;                //...i counter...
+                    if (byte_count == 3'b0) begin                                   //Se c'è un byte pronto per essere mandato
+                        if (~tx_busy) begin                                         //si aspetta che il canale sia libero
+                            tx_start = 1'b1;                                        //e lo si manda,
+                            next_tx_busy = 1'b1;
+                            if (pack_count == n_len - 5'b1) begin                   //poi se tutti i bit non di padding sono stati inviati
+                                next_flag = 1'b0;                                   //si torna ad attendere una word da FME
+                                /*if (almost_done_reg) begin                          //a meno che il cifrato da decriptare non sia finito;
+                                    done_tick = 1'b1;
+                                    next_almost_done = 1'b0;
+                                    
+                                    next_state = IDLE;
+                                end*/
+                            end
+                            else begin                                              //se invece ci sono ancora bit non di padding da inviare
+                                {next_pack, next_byte} = {pack_reg, byte_reg} >> 1; //si ricomincia a shiftare.
+                                next_pack_count = pack_count + 5'b1;
+                                next_byte_count = byte_count + 3'b1;
                             end
                         end
-                        else begin
-                            {next_pack, next_byte} = {pack_reg, byte_reg} >> 1;     //...altrimenti shifta e incrementa senza mandare
-                            next_pack_count = pack_count + 5'b1;
-                            next_byte_count = byte_count + 3'b1;
-                        end
+                    end
+                    else if (pack_count == n_len - 5'b1) begin                      //Altrimenti, se tutti i bit non di padding sono stati shiftati
+                        next_flag = 1'b0;                                           //si torna ad attendere una word da FME
+                        /*if (almost_done_reg) begin                                  //a meno che il cifrato da decriptare non sia finito;
+                            done_tick = 1'b1;                                       //in questo caso si termina perchè ciò che avanza è certamente un NUL.
+                            next_almost_done = 1'b0;
+                            
+                            next_state = IDLE;
+                        end*/
+                    end
+                    else begin                                                      //Infine, se il byte non è pronto E il pack non è svuotato
+                        {next_pack, next_byte} = {pack_reg, byte_reg} >> 1;         //si shifta e basta.
+                        next_pack_count = pack_count + 5'b1;
+                        next_byte_count = byte_count + 3'b1;
                     end
                 end
                 else if (word_ready) begin                              //se c'è una parola in arrivo...
@@ -177,6 +186,12 @@ module DecrypterOut (
                         next_last_word = 1'b0;                          //...resetta la flag di ultima parola...
                         next_almost_done = 1'b1;                        //...e alza la flag di "quasi finito".
                     end
+                end
+                else if (almost_done_reg) begin
+                    done_tick = 1'b1;
+                    next_almost_done = 1'b0;
+                    
+                    next_state = IDLE;
                 end
             end
             
