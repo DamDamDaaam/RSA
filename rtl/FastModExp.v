@@ -1,7 +1,5 @@
-`timescale 1ns / 100ps
 
-//Modulo che esegue l'operazione "base^exponent MOD modulo", alla base dell'algoritmo RSA.
-//Usa l'algoritmo "Fast modular exponentiation", basato sull'iterazione di shift dell'esponente, prodotti e riduzioni modulari.
+`timescale 1ns / 100ps
 
 module FastModExp (
     
@@ -31,27 +29,36 @@ module FastModExp (
         .P(product)
     );
     
-    reg div_en;  //DA RIVEDERE
+    reg mult_start;
+    reg [6:0] mult_shift;
+    
+    always @(posedge clk) begin
+        if (rst)
+            mult_shift <= 7'b0;
+        else begin
+            mult_shift[0] <= mult_start;
+            for (integer i = 1; i < 7; i = i + 1) begin
+                mult_shift[i] <= mult_shift[i - 1];
+            end
+        end
+    end
+    
+    wire div_en;
     wire div_done;
     wire [95:0] div_out;
     wire [31:0] remainder;
     
+    assign div_en = mult_shift[6];
     assign remainder[31:0] = div_out[31:0];
-    
-    always @(*)
-        if (product == 64'b0)
-            div_en = 1'b0;
-        else
-            div_en = 1'b1;
     
     DividerRadix2_64_32 fme_div (
         .aclk                   (clk),
         .aresetn                (~rst),
         
-        .s_axis_divisor_tvalid  (div_en),           //DA RIVEDERE
+        .s_axis_divisor_tvalid  (div_en),
         .s_axis_divisor_tdata   (modulo),
         
-        .s_axis_dividend_tvalid (div_en),           //DA RIVEDERE
+        .s_axis_dividend_tvalid (div_en),
         .s_axis_dividend_tdata  (product),
         
         .m_axis_dout_tvalid     (div_done),
@@ -104,6 +111,7 @@ module FastModExp (
     end
     
     always @(*) begin
+        mult_start = 1'b0;
         mult1 = 32'b0;
         mult2 = 32'b0;
         done = 1'b0;
@@ -125,6 +133,7 @@ module FastModExp (
             end
             
             MULT_R: begin
+                mult_start = 1'b1;
                 mult1 = r_tmp;
                 
                 if (n_tmp[0] == 1'b1) begin
@@ -138,6 +147,7 @@ module FastModExp (
             end
             
             MULT_A: begin
+                mult_start = 1'b1;
                 mult1 = a_tmp;
                 mult2 = a_tmp;
                 
