@@ -7,7 +7,6 @@ module RSA (
 
     input wire clk_100,
     input wire [1:0] mode_select,       // SW[3:2]
-    //input wire out_en,                // SW[1]   è stato usato come test
     input wire var_sel,                 // SW[0]
     
     input wire del_but,                 // BTN[3]
@@ -72,39 +71,6 @@ module RSA (
         end
     endgenerate
     
-    //SCOMMENTARE se non funziona il generate
-    /*Debouncer delete_deb (
-        
-        .clk    (           clk ),
-        .button (       del_but ),
-        .pulse  (        delete )
-        
-    );
-
-    Debouncer move_left_deb (
-        
-        .clk    (           clk ),
-        .button ( move_left_but ),
-        .pulse  (     move_left )
-        
-    );
-    
-    Debouncer add_one_deb (
-        
-        .clk    (           clk ),
-        .button (   add_one_but ),
-        .pulse  (       add_one )
-        
-    );
-    
-    Debouncer start_deb (
-        
-        .clk    (           clk ),
-        .button (     start_but ),
-        .pulse  (         start )
-        
-    );*/
-    
     /////////////////////////////////////
     // MODULO DI GESTIONE DELLE CHIAVI //
     /////////////////////////////////////
@@ -126,9 +92,6 @@ module RSA (
         .clk            (         clk ),
         .rst            (         rst ),
         .mode           ( mode_select ),
-    /////////////////   TEST    ////////////////
-    //    .key_valid_test (      out_en ),
-    /////////////////   TEST    ////////////////
         .select_key     (     var_sel ),
         
         .del            (         del ),
@@ -205,7 +168,7 @@ module RSA (
         .start_out     (tx_start),
         .data_out      (tx_data),
         
-        .busy          (crypter_busy)  //TODO far funzionare
+        .busy          (crypter_busy)
     );
     
     ////////////////////////
@@ -314,7 +277,6 @@ module RSA (
     SevenSegment_12_Digits schermo (
     
         .clk      (               clk ),
-//        .en       ( out_en & ~working ),
         .en       (          ~working ),
         .mode     (         show_mode ),      // input della mode da stampare a video
         .BCD      (           BCD_val ),      // input del numero da stampare a video
