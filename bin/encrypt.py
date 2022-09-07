@@ -69,32 +69,14 @@ byte_count = 0
 pending_bits = 0
 
 while byte_count < len(message):
-    while pending_bits < n_key_len - 1:
+    while (pending_bits < n_key_len - 1) and not (byte_count == len(message)):
         ser.write(chr(message[byte_count]).encode("latin1"))
         byte_count += 1
         pending_bits += 8
-        if byte_count == len(message):
-            break
     while pending_bits >= n_key_len - 1:
         cipher += ser.read(4)
         pending_bits -= n_key_len - 1
-
-"""ser.timeout = 0.001
-
-def sender_loop():
-    delay = 0.001 * 32.0 / n_key_len
-    for value in message:
-        ser.write(chr(value).encode("latin1"))
-        time.sleep(delay)
-    ser.write(chr(4).encode("latin1"))
-    time.sleep(0.1)
-
-sender = threading.Thread(target=sender_loop)
-sender.start()
-
-while sender.is_alive():
-    cipher += ser.read(1)"""
-
+    
 ser.write(chr(4).encode("latin1")) #EOT
 
 print(pending_bits)
