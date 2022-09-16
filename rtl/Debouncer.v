@@ -19,7 +19,7 @@ module Debouncer (
 //   TickCounter #(.MAX(13)) TickCounter_inst (.clk(clk), .tick(enable)) ;   // 7.6 MHz clock-enable (for simulation purpose)
 
    ////////////////////////////////
-   //   single-pulse generator   // tick length = period of TickCounter
+   //   single-pulse generator   // tick length = one clock cycle
    ////////////////////////////////
 
    reg [1:0] q1 = 'b0 ;   // 2 FlipFlops
