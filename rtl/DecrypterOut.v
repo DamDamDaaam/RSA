@@ -1,6 +1,17 @@
 `timescale 1ns / 100ps
 
-//Prende il testo decriptato da FastModExp e lo invia sulla UART
+//Elabora le word da 32 bit prodotte da FastModExp per riformare e trasmettere via UART
+//il messaggio in chiaro.
+
+//In fase di cifratura le word erano ottenute aggiungendo a un pack di (n_len - 1) bit
+//un padding di zeri fino a raggiungere la dimensione di 32 bit, quindi qui avviene l'opposto:
+//di ogni word vengono inviati tramite UART solo i primi (n_len - 1) bit, scartando il padding.
+
+//Per determinare quando l'intero messaggio è stato decifrato si usano due flag:
+//last_word_reg e almost_done_reg.
+//La prima si alza quando si riceve notifica da DecrypterIn che l'ultima word è in decifratura,
+//la seconda quando detta decifratura termina e quindi l'ultima word raggiunge DecrypterOut.
+//Infine il processo termina quando l'ultima word è stata spacchettata e inviata
 
 module DecrypterOut (
     input wire clk,
@@ -146,15 +157,8 @@ module DecrypterOut (
                         if (~tx_busy) begin                                         //si aspetta che il canale sia libero
                             tx_start = 1'b1;                                        //e lo si manda,
                             next_tx_busy = 1'b1;
-                            if (pack_count == n_len - 5'b1) begin                   //poi se tutti i bit non di padding sono stati inviati
+                            if (pack_count == n_len - 5'b1)                         //poi se tutti i bit non di padding sono stati inviati
                                 next_flag = 1'b0;                                   //si torna ad attendere una word da FME
-                                /*if (almost_done_reg) begin                          //a meno che il cifrato da decriptare non sia finito;
-                                    done_tick = 1'b1;
-                                    next_almost_done = 1'b0;
-                                    
-                                    next_state = IDLE;
-                                end*/
-                            end
                             else begin                                              //se invece ci sono ancora bit non di padding da inviare
                                 {next_pack, next_byte} = {pack_reg, byte_reg} >> 1; //si ricomincia a shiftare.
                                 next_pack_count = pack_count + 5'b1;
@@ -162,15 +166,8 @@ module DecrypterOut (
                             end
                         end
                     end
-                    else if (pack_count == n_len - 5'b1) begin                      //Altrimenti, se tutti i bit non di padding sono stati shiftati
+                    else if (pack_count == n_len - 5'b1)                            //Altrimenti, se tutti i bit non di padding sono stati shiftati
                         next_flag = 1'b0;                                           //si torna ad attendere una word da FME
-                        /*if (almost_done_reg) begin                                  //a meno che il cifrato da decriptare non sia finito;
-                            done_tick = 1'b1;                                       //in questo caso si termina perchè ciò che avanza è certamente un NUL.
-                            next_almost_done = 1'b0;
-                            
-                            next_state = IDLE;
-                        end*/
-                    end
                     else begin                                                      //Infine, se il byte non è pronto E il pack non è svuotato
                         {next_pack, next_byte} = {pack_reg, byte_reg} >> 1;         //si shifta e basta.
                         next_pack_count = pack_count + 5'b1;
@@ -187,11 +184,11 @@ module DecrypterOut (
                         next_almost_done = 1'b1;                        //...e alza la flag di "quasi finito".
                     end
                 end
-                else if (almost_done_reg) begin
-                    done_tick = 1'b1;
-                    next_almost_done = 1'b0;
+                else if (almost_done_reg) begin            //Altrimenti, se la flag di "quasi finito" è alta
+                    done_tick = 1'b1;                      //la procedura termina,
+                    next_almost_done = 1'b0;               //si resetta la flag
                     
-                    next_state = IDLE;
+                    next_state = IDLE;                     //e si torna in IDLE
                 end
             end
             

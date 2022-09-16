@@ -1,6 +1,11 @@
 `timescale 1ns / 100ps
 
-//Prende il testo in chiaro dalla UART e lo carica in FastModExp
+//Riceve il messaggio dalla UART e lo carica in FastModExp, dove viene criptato
+
+//I byte ricevuti vengono caricati un bit alla volta da sinistra in uno shift register,
+//partendo dal loro LSB.
+//Una volta caricati (n_len - 1) bit, la word viene portata alla dimensione di 32 bit
+//aggiungendo zeri di padding a sinistra, e viene inviata a FastModExp
 
 module EncrypterIn (
     input wire clk,
@@ -23,9 +28,9 @@ module EncrypterIn (
     );
     
     parameter [1:0] IDLE    = 2'd0;
-    parameter [1:0] SIZING  = 2'd1;
-    parameter [1:0] PACK    = 2'd2;
-    parameter [1:0] PADDING = 2'd3;
+    parameter [1:0] SIZING  = 2'd1; //Calcolo e invio della lunghezza della chiave n
+    parameter [1:0] PACK    = 2'd2; //Caricamento di (n_len - 1) bit validi nello shift register
+    parameter [1:0] PADDING = 2'd3; //Aggiunta degli zeri di padding e invio a FastModExp
     
     //Registri
     
@@ -101,19 +106,19 @@ module EncrypterIn (
                 next_n_len = 5'b0;
                 next_n_key = n_key;
                 if (start) begin
-                    clear_rx_flag = 1'b1; //Per assicurare che a inizio processo sia basso ready_in
+                    clear_rx_flag = 1'b1; //Assicura che a inizio processo sia basso ready_in
                     
                     next_state = SIZING;
                 end
             end
             
             SIZING: begin
-                if (n_key_buf > 32'b0) begin
-                    next_n_len = n_len + 5'b1;
+                if (n_key_buf > 32'b0) begin     //Calcola n_len shiftando la chiave finchè non
+                    next_n_len = n_len + 5'b1;   //diventa uguale a zero e contando i passaggi,
                     next_n_key = n_key_buf >> 1;
                 end
                 else begin
-                    start_out = 1'b1;
+                    start_out = 1'b1;            //poi invia il valore ottenuto sulla UART
                     
                     next_pack_count = 5'b0;
                     next_byte_count = 3'b0;
@@ -125,24 +130,24 @@ module EncrypterIn (
             end
             
             PACK: begin
-                if ((pack_count == n_len - 5'd1))
-                    next_state = PADDING;
+                if ((pack_count == n_len - 5'd1))       //Se tutti i bit validi della word sono stati aggiunti al pack
+                    next_state = PADDING;               //passa ad aggiungere il padding
                 else begin
-                    if (byte_count == 3'b0) begin
-                        if (eot_in) begin
+                    if (byte_count == 3'b0) begin       //Se un intero byte è stato shiftato nel pack
+                        if (eot_in) begin               //verifica se il messaggio è finito:
                             clear_rx_flag = 1'b1;
-                            next_eot_received = 1'b1;
-                            next_state = PADDING;
+                            next_eot_received = 1'b1;   //se sì setta una flag
+                            next_state = PADDING;       //e si prepara ad aggiungere padding e inviare ciò che resta;
                         end
-                        else if (ready_in) begin
+                        else if (ready_in) begin        //se no aspetta un nuovo byte dalla UART e inizia a caricarlo nel pack
                             clear_rx_flag = 1'b1;
                             next_byte_count = byte_count + 3'b1;
                             next_pack_count = pack_count + 5'b1;
                             {next_data, next_pack} = {data_in, pack} >> 1;
                         end
                     end
-                    else begin
-                        next_byte_count = byte_count + 3'b1;
+                    else begin                                           //Se invece ci sono ancora bit da shiftare nel byte corrente
+                        next_byte_count = byte_count + 3'b1;             //li shifta uno a uno
                         next_pack_count = pack_count + 5'b1;
                         {next_data, next_pack} = {data_buf, pack} >> 1;
                     end
@@ -150,18 +155,18 @@ module EncrypterIn (
             end
             
             PADDING: begin
-                if (pack_count == 5'd0) begin
-                    fme_start = 1'b1;
-                    if (eot_received) begin
+                if (pack_count == 5'd0) begin         //Se sono stati aggiunti abbastanza zeri per avere una word da 32 bit
+                    fme_start = 1'b1;                 //avvia la cifratura,
+                    if (eot_received) begin           //poi verifica se il messaggio è finito:
                         next_eot_received = 1'b0;
-                        next_state = IDLE;
+                        next_state = IDLE;            //se sì termina il processo;
                     end
                     else
-                        next_state = PACK;
+                        next_state = PACK;            //se no va a costruire la prossima word
                 end
                 else begin
                     next_pack_count = pack_count + 5'b1;
-                    next_pack = pack >> 1; 
+                    next_pack = pack >> 1;                //Aggiunge uno zero di padding
                 end
             end
         endcase

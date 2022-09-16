@@ -1,6 +1,15 @@
 `timescale 1ns / 100ps
 
-//Prende il cifrato dalla UART e lo carica in FastModExp
+//Riceve il cifrato dalla UART e lo carica in FastModExp, dove viene decriptato
+
+//Ogni volta che questo modulo riceve un byte di cifrato lo shifta in un pack da 32 bit;
+//quando il pack è stato riempito con una word da 4 byte la decifratura si avvia
+//e si ritorna ad aspettare dati. Il tempo tra l'arrivo di un byte e l'altro è molto
+//superiore alla durata del processo di decifratura della word
+
+//Il software deve inviare a inizio comunicazione a DecrypterIn la lunghezza del cifrato
+//misurata in word, poichè questa informazione viene usata per determinare
+//la fine della procedura
 
 module DecrypterIn (
     input wire clk,

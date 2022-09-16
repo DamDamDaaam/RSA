@@ -1,5 +1,8 @@
 `timescale 1ns / 100ps
 
+//TickCounter per la UART:
+//genera tick alla frequenza di 16 * baudrate, secondo l'oversampling scheme proposto dal Pong
+
 module BaudTicker
     #(
     parameter integer BAUD_RATE,

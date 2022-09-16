@@ -1,18 +1,24 @@
 `timescale 1ns / 100ps
 
-//Il modulo cripta e decripta stream di bit prodotti leggendo i byte dal primo all'ultimo e leggendo ogni byte da LSB a MSB. Questo causa uno scrambling dei valori durante l'impacchettamento, ma al momento di decriptare questo scrambling viene annullato.
+//Modulo che gestisce le operazioni di cifratura e decifratura dei messaggi
 
-//I valori che vengono criptati sono blocchi da 32 bit ottenuti aggiungendo zeri di padding a sinistra fino ad arrivare a 32 dopo aver impacchettato un numero di bit di input pari al numero di bit della chiave N meno 1
-
-//I valori che vengono decriptati sono blocchi da 32 bit che devono essere stati generati da questo dispositivo o da uno uguale. Il risultato della decrittografia può terminare con fino a 3 null character in eccesso rispetto al messaggio originale.
+//L'encoding utilizzato è latin1, in cui tutti i caratteri sono di dimensione 1 byte.
+//Se si cerca di criptare messaggi in encoding originale UTF-8, gli eventuali caratteri di
+//dimensione 2 byte risulteranno sbagliati dopo la decifratura
 
 //Non devono essere criptati con questo dispositivo file che contengono i caratteri NUL e/o EOT
+
+//Il cifrato prodotto risulta più lungo rispetto al messaggio originale, secondo la proporzione
+//l_cifrato = l_messaggio * 32 / (n_len - 1)
+//dove l_cifrato e l_messaggio sono in byte e n_len è la lunghezza in bit della chiave n
+
+//Il messaggio in chiaro ottenuto tramite decifratura può terminare con fino a tre caratteri NUL
+//aggiuntivi, non presenti nel messaggio originale ed eliminati via software
 
 module Crypter (
     
     input wire clk,
     input wire rst,
-  //input wire en,          // collegabile direttamente a SW[3] (mode[1])
     input wire mode,        // collegabile direttamente a SW[2] (mode[0])
     
     input wire start,
@@ -80,7 +86,7 @@ module Crypter (
         .word_ready    (word_ready_enc),
         .data_in       (message_out),
         
-        .sending_word  (sending_word_enc), //Eventualmente usare per debug in hardware
+        .sending_word  (sending_word_enc),
         .tx_start      (send_cipher),
         .data_out      (cipher_byte)
     );
@@ -186,7 +192,7 @@ module Crypter (
         else
             data_out = 8'b0;
         
-        if (mode) begin //Se la modalità è crittaggio
+        if (mode) begin //Se la modalità è cifratura
             fme_start = fme_start_enc;
             fme_data_in = fme_data_in_enc;
             key = e_key;
@@ -222,7 +228,7 @@ module Crypter (
         else begin
             if (start)
                 busy <= 1'b1;
-            if (mode) begin    //Gestione del busy per il crittaggio
+            if (mode) begin    //Gestione del busy per la cifratura
                 if (eot_in)
                     eot_received <= 1'b1;
                 if (eot_received & word_ready_enc)
@@ -233,7 +239,7 @@ module Crypter (
                     sending_last_word <= 1'b0;
                 end
             end
-            else begin         //Gestione del busy per il decrittaggio
+            else begin         //Gestione del busy per la decifratura
                 if (dec_done_tick)
                     busy <= 1'b0;
             end

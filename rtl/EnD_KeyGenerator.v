@@ -1,17 +1,34 @@
 `timescale 1ns / 100ps
 
+//Data la chiave phi questo modulo esegue l'algoritmo di Euclide esteso per determinare
+//le chiavi e_key e d_key
+
+//Una volta generate, le chiavi rimangono valide solo per un ciclo di clock, durante cui si
+//alzano i segnali e_key_valid e d_key_valid, che segnalano al KeyManager la necessità di
+//registrarle
+
+//L'algoritmo richiede di effettuare numerose divisioni e moltiplicazioni. Per questo sono
+//stati usati due IP core: un divider Radix-2 e un parallel Multiplier.
+//Entrambi i moduli dispongono di una pipeline per poter eseguire un'operazione ogni
+//ciclo di clock.
+//I dati che non partecipano alle moltiplicazioni e alle divisioni ma devono rimanere
+//associati ai risultati delle stesse prendono qui il nome di "tickets", e vengono shiftati
+//parallelamente alle pipeline
+//Nel divider questo shift register è built-in nell'IP core, mentre per il multiplier è stato
+//implementato a parte
+
 module EnD_KeyGenerator(
     
     input wire clk,
     input wire rst,
     input wire en,            //Collegato al valid di phi
     input wire [31:0] phi,
-    input wire [31:0] rng_e,
+    input wire [31:0] rng_e,  //Valore pseudocasuale da testare come potenziale e_key
     output wire e_key_valid,
     output reg [31:0] e_key,
     output wire d_key_valid,
     output reg [31:0] d_key,
-    output reg rng_en
+    output reg rng_en         //Segnale che abilita l'LFSR per generare rng_e
     );
     
     wire [97:0] tickets_in;
@@ -140,7 +157,7 @@ module EnD_KeyGenerator(
                     if (rng_e >= phi)     //ma rng_e è più grande di phi
                         divisor = 32'b1;  //allora scarta il dato al prossimo giro;
                     else                  //se invece rng_e è minore di phi
-                        divisor = rng_e;  //fallo entrare
+                        divisor = rng_e;  //avvia l'algoritmo con questo valore
                     e_ticket_in = rng_e;
                     
                     rng_en      = 1'b1;   //e abilita l'LFSR.
@@ -161,7 +178,7 @@ module EnD_KeyGenerator(
                     rng_en      = 1'b0;
                     
                     keys_valid  = 1'b1;             //segnala che le chiavi sono valide,
-                    e_key       = e_ticket_shift;   // e le manda in output al modulo
+                    e_key       = e_ticket_shift;   //e le manda in output al modulo
                     if (t1_ticket_shift < product)
                         d_key = phi + t1_ticket_shift - product;
                     else
@@ -172,7 +189,7 @@ module EnD_KeyGenerator(
                 
                 default: begin                      //Se GCD non trovato
                     dividend    = divisor_ticket_shift;   //sostituisci dividendo con divisore
-                    divisor     = remainder_shift;        //e divisore con resto (Euclide).
+                    divisor     = remainder_shift;        //e divisore con resto (Euclide);
                     e_ticket_in = e_ticket_shift;
                     
                     rng_en      = 1'b0;
@@ -181,9 +198,8 @@ module EnD_KeyGenerator(
                     e_key       = 32'b0;
                     d_key       = 32'b0;
                     
-                    t1_ticket_in = t2_ticket_shift;
-                    //t2_ticket_in = t_value;
-                    t2_ticket_in = t1_ticket_shift - product;
+                    t1_ticket_in = t2_ticket_shift;            //e aggiorna le variabili t1 e t2
+                    t2_ticket_in = t1_ticket_shift - product;  //secondo Euclide esteso
                 end
             endcase
         end
@@ -192,7 +208,7 @@ module EnD_KeyGenerator(
             if (rng_e >= phi)     //ma rng_e è più grande di phi
                 divisor = 32'b1;  //allora scarta il dato al prossimo giro;
             else                  //se invece rng_e è minore di phi
-                divisor = rng_e;  //fallo entrare
+                divisor = rng_e;  //avvia l'algoritmo con questo valore
             e_ticket_in = rng_e;
             
             rng_en      = en;     //e abilita l'LFSR (se E_KeyGenerator è abilitato).
