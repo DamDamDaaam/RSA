@@ -1,12 +1,16 @@
-
-// modulo di interfaccia con i SevenSegment
-
 `timescale 1ns / 100ps
-    
+
+//Modulo di interfaccia con il display Seven Segment a 12 cifre.
+//La prima cifra indica la mode (o l'operazione in corso), la seconda è un separatore,
+//le successive rappresentano una delle chiavi, a seconda della mode
+
+//Il punto è separatore delle migliaia, tranne nella modalità di editing, in cui il
+//punto lampeggiante funge da cursore
+
 module SevenSegment_12_Digits (
     
     input  wire clk,
-    input  wire en,
+    input  wire en,             // non un vero e proprio enable, ma stampa trattini se busy
     input  wire [ 3:0] mode,    // input della mode da stampare a video
     input  wire [39:0] BCD,     // input del numero da stampare a video
     
@@ -25,15 +29,14 @@ module SevenSegment_12_Digits (
     
     ) ;
     
-    reg [25:0] count = 'b0 ;                        // matchare lunghezza con count e forzare rollover a 12
+    reg [25:0] count = 'b0 ;
     
     always @(posedge clk) begin
         count <= count + 'b1 ;
     end
     
-    wire [3:0] refresh_slice ;
-    
-    assign refresh_slice = count[20:17] ;           // vedi sopra
+    wire [3:0] refresh_slice;
+    assign refresh_slice = count[20:17];
         
     reg [3:0] BCD_mux;
     reg d_point;
@@ -45,14 +48,14 @@ module SevenSegment_12_Digits (
             case( refresh_slice[3:0] )
         
                 4'd0    : begin
-                    BCD_mux = BCD[ 3: 0] ;
-                    if(typing)
-                        if(refresh_slice == digit && blink)
-                            d_point = 1'b0;
-                        else
-                            d_point = 1'b1;
+                    BCD_mux = BCD[ 3: 0] ;                  //seleziona la cifra da BCD.
+                    if(typing)                              //se si sta editando...
+                        if(refresh_slice == digit && blink) //...se questa è la cifra editata...
+                            d_point = 1'b0;                 //
+                        else                                //...fai lampeggiare il punto...
+                            d_point = 1'b1;                 //
                     else
-                        d_point = 1'b1;
+                        d_point = 1'b1;                     //...altrimenti spegnilo
                     end
                 4'd1    : begin
                     BCD_mux = BCD[ 7: 4] ;
@@ -82,7 +85,7 @@ module SevenSegment_12_Digits (
                         else
                             d_point = 1'b1;
                     else
-                        d_point = 1'b0;
+                        d_point = 1'b0;                       //migliaia, quindi punto acceso
                     end
                 4'd4    : begin
                     BCD_mux = BCD[19:16] ;
@@ -112,7 +115,7 @@ module SevenSegment_12_Digits (
                         else
                             d_point = 1'b1;
                     else
-                        d_point = 1'b0;
+                        d_point = 1'b0;                      //milioni, punto acceso
                     end
                 4'd7    : begin
                     BCD_mux = BCD[31:28] ;
@@ -142,7 +145,7 @@ module SevenSegment_12_Digits (
                         else
                             d_point = 1'b1;
                     else
-                        d_point = 1'b0;
+                        d_point = 1'b0;                       //miliardi, punto acceso
                     end
                 4'd10   : begin
                     BCD_mux =       4'ha ;          // stampa "-"
@@ -160,7 +163,7 @@ module SevenSegment_12_Digits (
     
             endcase
         end
-        else begin
+        else begin                                  //se il dispositivo è busy (en basso)
             case( refresh_slice[3:0] )
                 4'd11   : begin
                     BCD_mux =  mode[3:0] ;          // stampa il carattere di mode
@@ -178,14 +181,13 @@ module SevenSegment_12_Digits (
     
     integer i ;
     
+    //bin to one-hot per pilotare gli anodi
+    
     always @(*) begin
-    
         for (i=0 ; i<12; i=i+1) begin
-    
             anode[i] = ( refresh_slice == i ) ;
-
-        end  // for
-    end  //  always    
+        end
+    end
         
     SevenSegmentDecoder  display_decoder (
     

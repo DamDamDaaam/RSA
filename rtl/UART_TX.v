@@ -1,5 +1,8 @@
 `timescale 1ns / 100ps
 
+//Macchina a stati finiti che gestisce la trasmissione di byte tramite UART.
+//(Per il design è stato seguito l'esempio del Pong)
+
 module UART_TX (
     input wire clk,
     input wire rst,
@@ -12,9 +15,9 @@ module UART_TX (
     
     //Definizione degli stati
     parameter [1:0] IDLE  = 2'b00;
-    parameter [1:0] START = 2'b01;
-    parameter [1:0] WRITE = 2'b10;
-    parameter [1:0] STOP  = 2'b11;
+    parameter [1:0] START = 2'b01; //Genera lo start bit
+    parameter [1:0] WRITE = 2'b10; //Trasmette i bit di dati
+    parameter [1:0] STOP  = 2'b11; //Genera lo stop bit
     
     //Definizione delle variabili
     reg [3:0] baud_count;
@@ -57,13 +60,13 @@ module UART_TX (
         end
     end
     
-    //////////////////////////////////////
-    // COMBINATIONAL PART OF UART TX FSM//
-    //////////////////////////////////////
+    ///////////////////////////////////////
+    // COMBINATIONAL PART OF UART TX FSM //
+    ///////////////////////////////////////
     
     always @(*) begin
-        next_state = state;            //Se non specificato diversamente mantieni tutto uguale
-        tx_done_tick = 1'b0;           //e tx_done_tick a zero
+        next_state = state;
+        tx_done_tick = 1'b0;
         next_baud_count = baud_count;
         next_data_count = data_count;
         next_data = data;
@@ -71,23 +74,23 @@ module UART_TX (
         
         case (state)
             IDLE: begin
-                next_tx_reg = 1'b1;
-                if (tx_start) begin
+                next_tx_reg = 1'b1;         //In IDLE il canale si mantiene alto.
+                if (tx_start) begin         //Se si avvia una trasmissione
                     next_baud_count = 4'b0;
-                    next_data = data_in;
+                    next_data = data_in;    //carica il byte nel buffer interno
                     
-                    next_state = START;
+                    next_state = START;     //e passa a START.
                 end
             end
             
             START: begin
-                next_tx_reg = 1'b0;
+                next_tx_reg = 1'b0;                 //Lo start bit è basso.
                 if (baud_tick) begin
-                    if (baud_count == 4'd15) begin
+                    if (baud_count == 4'd15) begin  //Dopo il periodo corrispondente al baud rate
                         next_baud_count = 4'b0;
                         next_data_count = 3'b0;
                     
-                        next_state = WRITE;
+                        next_state = WRITE;         //passa in WRITE.
                     end
                     else
                         next_baud_count = baud_count + 4'b1;
@@ -95,13 +98,13 @@ module UART_TX (
             end
             
             WRITE: begin
-                next_tx_reg = data[0];
+                next_tx_reg = data[0];              //Trasmette i bit di data uno alla volta.
                 if (baud_tick) begin
-                    if (baud_count == 4'd15) begin
+                    if (baud_count == 4'd15) begin  //Dopo il tempo di un baud
                         next_baud_count = 4'b0;
-                        next_data = data >> 1;
-                        if (data_count == 3'd7)
-                            next_state = STOP;
+                        next_data = data >> 1;      //shifta data per estrarre il prossimo bit.
+                        if (data_count == 3'd7)     //Dopo aver inviato l'ottavo bit
+                            next_state = STOP;      //passa a STOP.
                         else
                             next_data_count = data_count + 3'b1;
                     end
@@ -111,12 +114,12 @@ module UART_TX (
             end
             
             STOP: begin
-                next_tx_reg = 1'b1;
+                next_tx_reg = 1'b1;                 //Lo stop bit è alto.
                 if (baud_tick) begin
-                    if (baud_count == 4'd15) begin
-                        tx_done_tick = 1'b1;
+                    if (baud_count == 4'd15) begin  //Dopo il tempo di un baud
+                        tx_done_tick = 1'b1;        //comunica l'avvenuta trasmissione
                         
-                        next_state = IDLE;
+                        next_state = IDLE;          //e termina l'operazione.
                     end
                     else
                         next_baud_count = baud_count + 4'b1;

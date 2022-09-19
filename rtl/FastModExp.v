@@ -1,5 +1,8 @@
-
 `timescale 1ns / 100ps
+
+//Modulo che esegue le operazioni di cifratura e decifratura tramite l'algoritmo FME.
+//Le word che vengono cifrate/decifrate sono da 32 bit. Il valore di result varia durante il
+//calcolo, e deve essere considerato solo durante il ciclo di clock in cui done è alto
 
 module FastModExp (
     
@@ -16,6 +19,10 @@ module FastModExp (
     
     );
     
+    /////////////////////////////////
+    // PARALLEL MULTIPLIER IP CORE //
+    /////////////////////////////////
+    
     reg [31:0] mult1;
     reg [31:0] mult2;
     wire [63:0] product;
@@ -28,6 +35,10 @@ module FastModExp (
         
         .P(product)
     );
+    
+    //////////////////////////////////////////////////////////
+    // SHIFT REGISTER PER SEGNALARE TERMINE MOLTIPLICAZIONE //
+    //////////////////////////////////////////////////////////
     
     reg mult_start;
     reg [6:0] mult_shift;
@@ -42,6 +53,10 @@ module FastModExp (
             end
         end
     end
+    
+    /////////////////////////////////////////////
+    // DIVIDER Radix-2 CON DIVIDENDO DA 64 BIT //
+    /////////////////////////////////////////////
     
     wire div_en;
     wire div_done;
@@ -70,10 +85,10 @@ module FastModExp (
     ////////////////////////
     
     parameter [2:0] IDLE   = 3'd0;
-    parameter [2:0] MULT_R = 3'd1;
-    parameter [2:0] MULT_A = 3'd2;
-    parameter [2:0] SAVE_R = 3'd3;
-    parameter [2:0] SAVE_A = 3'd4;
+    parameter [2:0] MULT_R = 3'd1; //Avvia la moltiplicazione r * a (o r * 1 se n[0] = 0)
+    parameter [2:0] MULT_A = 3'd2; //Avvia la moltiplicazione a * a (da fare sempre)
+    parameter [2:0] SAVE_R = 3'd3; //Salva il primo risultato in r
+    parameter [2:0] SAVE_A = 3'd4; //Salva il secondo risultato in a
     
     //Registri
     
@@ -90,8 +105,6 @@ module FastModExp (
     reg [31:0] next_n;
     reg [2:0]  next_state;
     
-    //reg [6:0] waitCounter;
-    
     assign result = r_tmp;
     
     always @(posedge clk) begin
@@ -99,13 +112,14 @@ module FastModExp (
             a_tmp <= 32'h0;
             r_tmp <= 32'h0;
             n_tmp <= 32'h0;
-          //waitCounter <= 7'h0;
+            
             state <= IDLE;
         end
         else begin
             a_tmp <= next_a;
             r_tmp <= next_r;
             n_tmp <= next_n;
+            
             state <= next_state;
         end
     end
@@ -167,8 +181,8 @@ module FastModExp (
             SAVE_A: begin
                 next_a = remainder;
                 
-                if(n_tmp == 32'b0) begin
-                    done = 1'b1;
+                if(n_tmp == 32'b0) begin //Quando n = 0 vuol dire che la chiave è stata
+                    done = 1'b1;         //completamente shiftata, quindi termina
                     
                     next_state = IDLE;
                 end

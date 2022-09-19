@@ -1,22 +1,23 @@
 `timescale 1ns / 100ps
 
-//Modulo che genera le tre chiavi n_key, e_key e d_key sequenzialmente
+//Modulo che genera le tre chiavi n_key, e_key e d_key
 //mantenendole valide per un ciclo di clock; è responsabilità del
 //KeyManager registrare le chiavi nel momento in cui vengono generate
 
 module KeyGenerator (
     input wire clk,
     input wire rst,
-    input wire en,
+    input wire en,     //alto quando mode=01 (Key generation), attiva LFSR
     input wire start,
     
     output wire [31:0] n_key,
     output wire [31:0] e_key,
     output wire [31:0] d_key,
     
-    output wire n_key_valid,
-    output wire e_key_valid,
-    output wire d_key_valid,
+    output wire n_key_valid, //tick da 1 clk che indicano la validità delle chiavi.
+    output wire e_key_valid, //gli ultimi due salgono sempre insieme, e sono separati solo per
+    output wire d_key_valid, //compatibilità con un vecchio design
+    
     output reg busy         //Unico registro controllato direttamente dal modulo
     );
     
@@ -34,9 +35,9 @@ module KeyGenerator (
             busy <= 1'b1;
     end
     
-    //////////////////////////////////
-    // LFSR RANDOM NUMBER GENERATOR //
-    //////////////////////////////////
+    /////////////////////////////////////////
+    // LFSR PSEUDO-RANDOM NUMBER GENERATOR // (Fonte di casualità: istante pressione start)
+    /////////////////////////////////////////
     
     wire rng_en;
     wire nphi_require_rng;

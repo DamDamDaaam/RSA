@@ -1,5 +1,9 @@
 `timescale 1ns / 100ps
 
+//ROM contenente tutti i numeri primi di 16 bit e successivamente riempita fino a 8 kB
+//con duplicati dei numeri primi più grandi (in modo che gli indirizzi casuali di 13 bit
+//siano sempre validi)
+
 module Primes16BitROM(
         input wire clk,
         input wire [12:0] addr,

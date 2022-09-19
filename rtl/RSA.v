@@ -1,7 +1,6 @@
-
-// Top level module - interfaccia utente
-
 `timescale 1ns / 100ps
+
+// Top level module - interfaccia utente e istanze di Crypter e KeyManager
 
 module RSA (
 
@@ -129,17 +128,17 @@ module RSA (
         .rst           (rst | ~mode_select[1]),
         
         .rx_stream     (rx_stream),      //Canali di comunicazione con l'esterno
-        .tx_stream     (tx_stream),
+        .tx_stream     (tx_stream),      //
         
         .rx_used_tick  (rx_used_tick),   //Pin relativi alla ricezione
-        .rx_readable   (rx_readable),
-        .eot           (eot),
-        .rx_data       (rx_data),
+        .rx_readable   (rx_readable),    //
+        .eot           (eot),            //
+        .rx_data       (rx_data),        //
         
         .tx_start      (tx_start),       //Pin relativi alla trasmissione
-        .tx_data       (tx_data),
-        .tx_busy       (tx_busy),
-        .tx_done_tick  (tx_done_tick)
+        .tx_data       (tx_data),        //
+        .tx_busy       (tx_busy),        //
+        .tx_done_tick  (tx_done_tick)    //
     );
     
     ///////////////////////////////////////////////
@@ -159,14 +158,14 @@ module RSA (
         .e_key         (e_key),
         .d_key         (d_key),
 
-        .eot_in        (eot),        //Collegamenti con ricevitore UART
-        .ready_in      (rx_readable),
-        .data_in       (rx_data),
-        .clear_rx_flag (rx_used_tick),
+        .eot_in        (eot),           //Collegamenti con ricevitore UART
+        .ready_in      (rx_readable),   //
+        .data_in       (rx_data),       //
+        .clear_rx_flag (rx_used_tick),  //
         
         .tx_done_tick  (tx_done_tick),  //Collegamenti con trasmettitore UART
-        .start_out     (tx_start),
-        .data_out      (tx_data),
+        .start_out     (tx_start),      //
+        .data_out      (tx_data),       //
         
         .busy          (crypter_busy)
     );
@@ -175,7 +174,8 @@ module RSA (
     // INTERFACCIA UTENTE //
     ////////////////////////
     
-    reg working;
+    reg working; //segnale alto quando il dispositivo sta facendo qualcosa.
+                 //mostra trattini sul display
     
     always @(*) begin
         case(mode_select[1:0])
@@ -211,7 +211,7 @@ module RSA (
                     end
                 end
                 
-            2'b11 :                             // Crittaggio
+            2'b11 :                             // Cifratura
                 if(crypter_busy) begin
                     show_mode = 4'hc;           // "C."
                     show_key = 32'h0;           // "0000000000"
@@ -236,9 +236,9 @@ module RSA (
                     end
                 end
                 
-            2'b10 :                             // Decrittaggio
+            2'b10 :                             // Decifratura
                 if(crypter_busy) begin
-                    show_mode = 4'hf;           // "U."
+                    show_mode = 4'hf;           // "U." (un-crypting) (???)
                     show_key = 32'h0;           // "0000000000"
                     working = 1'b1;
                 end
@@ -251,7 +251,7 @@ module RSA (
                         else
                             show_key = n_key;
                     end
-                    else begin                  // mostra/modifica chiave e
+                    else begin                  // mostra/modifica chiave d
                         show_mode = 4'hd;       // "d."
                         working = 1'b0;
                         if(typing)

@@ -5,16 +5,20 @@
 //phi = (p - 1) * (q - 1)
 //con p e q numeri primi casuali di 16 bit o meno
 
+//la chiave n è valida solo per un ciclo di clock, durante il quale KeyManager deve salvarla,
+//mentre phi viene salvato in un registro interno a questo modulo, e rimane fisso fino a rst
+//o successiva generazione
+
 module NnPhi_KeyGenerator(
     input wire clk,
     input wire rst,
     input wire start,
-    input wire [31:0] random,  //Prenderne prima e ultima parte
-    output reg rng_en,
+    input wire [31:0] random, //output di LFSR32; alcuni fili non sono connessi perchè in
+    output reg rng_en,        //questo modulo non servono numeri casuali di 32 bit
     output reg [31:0] n_key,
     output reg [31:0] phi,
     output reg n_key_valid,
-    output reg phi_valid
+    output reg phi_valid      //collegato all'en di EnD_KeyGenerator
     );
     
     //banchi di flip flop gestiti dal modulo
@@ -40,7 +44,7 @@ module NnPhi_KeyGenerator(
     );
     
     //////////////////////////////
-    // 16-BIT PRIME NUMBERS ROM //  (Riempita fino a 8kb con duplicati di numeri primi grandi)
+    // 16-BIT PRIME NUMBERS ROM //
     //////////////////////////////
     
     reg  [12:0] random_addr;  //slice diverso di random a seconda di GEN_P o GEN_Q
@@ -57,13 +61,13 @@ module NnPhi_KeyGenerator(
     ////////////////////////
     
     parameter [2:0] IDLE     = 3'h0;
-    parameter [2:0] GEN_P    = 3'h1;
-    parameter [2:0] GEN_Q    = 3'h2;
-    parameter [2:0] MULT_N   = 3'h3;
-    parameter [2:0] MULT_PHI = 3'h4;
-    parameter [2:0] WAIT     = 3'h5;
-    parameter [2:0] SEND_N   = 3'h6;
-    parameter [2:0] SAVE_PHI = 3'h7;
+    parameter [2:0] GEN_P    = 3'h1; //Generazione numero primo p
+    parameter [2:0] GEN_Q    = 3'h2; //Generazione numero primo q
+    parameter [2:0] MULT_N   = 3'h3; //Avvio moltiplicazione n = p * q
+    parameter [2:0] MULT_PHI = 3'h4; //Avvio moltiplicazione phi = (p - 1) * (q - 1)
+    parameter [2:0] WAIT     = 3'h5; //Attesa del termine della prima moltiplicazione
+    parameter [2:0] SEND_N   = 3'h6; //Invio della chiave n a KeyManager
+    parameter [2:0] SAVE_PHI = 3'h7; //Salvataggio di phi nel registro
     
     reg [2:0] state;
     reg [2:0] next_state;
@@ -127,7 +131,7 @@ module NnPhi_KeyGenerator(
                 mult2 = 16'b0;
                 n_key = 32'b0;
                 n_key_valid = 1'b0;
-                if (random_prime == p)   //Se i numeri primi sono uguali (1 caso su 8192)
+                if (random_prime == p)   //Se i numeri primi sono uguali
                     next_state = GEN_Q;  //generane uno nuovo
                 else
                     next_state = MULT_N; //altrimenti procedi.
@@ -176,7 +180,7 @@ module NnPhi_KeyGenerator(
                 next_state = SAVE_PHI;
             end
             
-            SAVE_PHI: begin
+            SAVE_PHI: begin      //phi viene salvato nel blocco sequenziale
                 rng_en = 1'b0;
                 mult1 = 16'b0;
                 mult2 = 16'b0;

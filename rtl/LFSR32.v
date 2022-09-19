@@ -1,9 +1,11 @@
 `timescale 1ns / 100ps
 
+//Linear feedback shift register a 32 bit che fornisce i numeri casuali per la generazione di chiavi
+
 //Nota: questo NON è un generatore di numeri casuali di per sè, in quanto è privo di una
 //randomness source. Agisce come un contatore che enumera i valori di 32 bit in ordine sparso.
 //Per generare numeri casuali si opera l'LFSR ad alta velocità (100 MHz) e si usa come randomness
-//source il tempo a cui l'utente preme il pulsante start.
+//source l'istante a cui l'utente preme il pulsante start.
 
 module LFSR32 (
     input wire clk,

@@ -1,0 +1,3 @@
+Necessario trovare un modo di rendere readmemh in Primes16bitROM indipendente dal pc
+
+Segnalibro: Siamo arrivati a RSA.v (già corretto) con i commenti da sistemare

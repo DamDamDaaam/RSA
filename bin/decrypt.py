@@ -82,6 +82,10 @@ print("Decrittografia completata")
 
 print("\nScrittura su file del messaggio in chiaro")
 
+first_null_index = message.find(chr(0))
+if first_null_index != -1:
+    message = message[:first_null_index]
+
 decrypted_path = path[:path.rfind(".")] + "_dec" + path[path.rfind("."):]
 
 with open(decrypted_path, "w") as decrypted_file:

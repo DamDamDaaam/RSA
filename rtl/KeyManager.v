@@ -1,20 +1,7 @@
-//
-// Modulo che si occupa della gestione delle chiavi
-// Prevede che il KeyGenerator sia dotato di:
-//    input:
-//        - start       avvia la generazione
-//        - rst         resetta tutto il modulo
-//    output:
-//        - busy            0 -> non operativo      1 -> calcolo delle chiavi in corso
-//        - n_key_gen       valore della chiave da immagazzinare in n_key
-//        - n_key_valid     tick che dice quando questo valore è valido
-//        - e_key_gen       valore della chiave da immagazzinare in e_key
-//        - e_key_valid     tick che dice quando questo valore è valido
-//        - d_key_gen       valore della chiave da immagazzinare in d_key
-//        - d_key_valid     tick che dice quando questo valore è valido
-//
-
 `timescale 1ns / 100ps
+
+//Modulo che si occupa di ogni aspetto della gestione delle chiavi. Contiene il KeyGenerator,
+//della logica per l'editing manuale delle chiavi e i registri che le contengono
 
 module KeyManager(
     
@@ -39,6 +26,10 @@ module KeyManager(
     output wire kg_busy             // informa che KeyGenerator sta calcolando chiavi
     );
     
+    ///////////////////
+    // KEY GENERATOR //
+    ///////////////////
+    
     reg  kg_start;                  // dà al KeyGenerator il via per generare chiavi
     reg  kg_rst;                    // rst di KeyGenerator
     reg  kg_en;                     // enable di KeyGenerator
@@ -47,9 +38,9 @@ module KeyManager(
     wire [31:0] e_key_gen;          // e_key generata dal KeyGenerator
     wire [31:0] d_key_gen;          // d_key generata dal KeyGenerator
     
-    wire n_key_valid;               // flag che fa salvare il valore di n_key generato dal KeyGenerator
-    wire e_key_valid;               // flag che fa salvare il valore di e_key generato dal KeyGenerator
-    wire d_key_valid;               // flag che fa salvare il valore di d_key generato dal KeyGenerator
+    wire n_key_valid;         // flag che fa salvare il valore di n_key generato dal KeyGenerator
+    wire e_key_valid;         // flag che fa salvare il valore di e_key generato dal KeyGenerator
+    wire d_key_valid;         // flag che fa salvare il valore di d_key generato dal KeyGenerator
     
     KeyGenerator keygen (
         .clk         (clk),
@@ -66,6 +57,10 @@ module KeyManager(
         .d_key_valid (d_key_valid),
         .busy        (kg_busy)
     );
+    
+    ////////////////////////
+    // SELETTORE FUNZIONI // (Determina il comportamento in base alla mode)
+    ////////////////////////
     
     reg [3:0] position;
     reg [3:0] value;
@@ -87,7 +82,7 @@ module KeyManager(
             kg_en  <= 1'b0;
         end
         else case(mode[1:0])
-            2'b00 : begin                       // Mode su "reset" ma rst spento.
+            2'b00 : begin                       // MODE: reset ma rst spento.
                 typing <= 'b0;                  // Se tutto va bene condizione mai verificata
                 
                 n_key <= 'b0;
@@ -99,7 +94,7 @@ module KeyManager(
                 kg_en  <= 1'b0;
             end
             
-            2'b01 : begin                       // Generazione chiavi
+            2'b01 : begin                       // MODE: Generazione chiavi
                 typing <= 1'b0;
                 
                 kg_en  <= 1'b1;
@@ -125,7 +120,7 @@ module KeyManager(
                 end
             end
             
-            2'b11 : begin                       // Crittaggio
+            2'b11 : begin                       // MODE: Cifratura
                 kg_start <= 1'b0;
                 kg_rst <= 1'b0;
                 kg_en  <= 1'b0;
@@ -133,15 +128,15 @@ module KeyManager(
                 if(select_key == 1'b0) begin    // mostra/modifica chiave n
                     if(del) begin                                       // premere delete...
                         if(typing == 1'b0)                              // ...mentre non si sta scrivendo...
-                            typing <= 1'b1;                             // ...avvia la scrittura...
+                            typing <= 1'b1;                             // ...avvia la scrittura
                         else begin                  // (se si sta scrivendo...
                             typing <= 1'b0;         // ...interrompe la scrittura...
                             n_key <= 'b0;           // ...e cancella la chiave)
                         end
                     end
                     else begin
-                        if(move_left && (position == 4'd9)) begin       // ...che dando un move_left dopo l'ultima cifra...
-                            typing <= 1'b0;                             // ...termina...
+                        if(move_left && (position == 4'd9)) begin       // dando un move_left dopo l'ultima cifra...
+                            typing <= 1'b0;                             // ...la scrittura termina...
                             n_key <= tot;                               // ...salvando il valore di tot nella chiave
                         end
                     end
@@ -149,15 +144,15 @@ module KeyManager(
                 else begin                  // mostra/modifica chiave e
                     if(del) begin                                       // premere delete...
                         if(typing == 1'b0)                              // ...mentre non si sta scrivendo...
-                            typing <= 1'b1;                             // ...avvia la scrittura...
+                            typing <= 1'b1;                             // ...avvia la scrittura
                         else begin                  // (se si sta scrivendo...
                             typing <= 1'b0;         // ...interrompe la scrittura...
                             e_key <= 'b0;           // ...e cancella la chiave)
                         end
                     end
                     else begin
-                        if(move_left && (position == 4'd9)) begin       // ...che dando un move_left dopo l'ultima cifra...
-                            typing <= 1'b0;                             // ...termina...
+                        if(move_left && (position == 4'd9)) begin       // dando un move_left dopo l'ultima cifra...
+                            typing <= 1'b0;                             // ...la scrittura termina...
                             e_key <= tot;                               // ...salvando il valore di tot nella chiave
                         end
                     end
@@ -172,15 +167,15 @@ module KeyManager(
                 if(select_key == 1'b0) begin    // mostra/modifica chiave n
                     if(del) begin                                       // premere delete...
                         if(typing == 1'b0)                              // ...mentre non si sta scrivendo...
-                            typing <= 1'b1;                             // ...avvia la scrittura...
+                            typing <= 1'b1;                             // ...avvia la scrittura
                         else begin                  // (se si sta scrivendo...
                             typing <= 1'b0;         // ...interrompe la scrittura...
                             n_key <= 'b0;           // ...e cancella la chiave)
                         end
                     end
                     else begin
-                        if(move_left && (position == 4'd9)) begin       // ...che dando un move_left dopo l'ultima cifra...
-                            typing <= 1'b0;                             // ...termina...
+                        if(move_left && (position == 4'd9)) begin       // dando un move_left dopo l'ultima cifra...
+                            typing <= 1'b0;                             // ...la scrittura termina...
                             n_key <= tot;                               // ...salvando il valore di tot nella chiave
                         end
                     end
@@ -188,15 +183,15 @@ module KeyManager(
                 else begin                  // mostra/modifica chiave d
                     if(del) begin                                       // premere delete...
                         if(typing == 1'b0)                              // ...mentre non si sta scrivendo...
-                            typing <= 1'b1;                             // ...avvia la scrittura...
+                            typing <= 1'b1;                             // ...avvia la scrittura
                         else begin                  // (se si sta scrivendo...
                             typing <= 1'b0;         // ...interrompe la scrittura...
                             d_key <= 'b0;           // ...e cancella la chiave)
                         end
                     end
                     else begin
-                        if(move_left && (position == 4'd9)) begin       // ...che dando un move_left dopo l'ultima cifra...
-                            typing <= 1'b0;                             // ...termina...
+                        if(move_left && (position == 4'd9)) begin       // dando un move_left dopo l'ultima cifra...
+                            typing <= 1'b0;                             // ...la scrittura termina...
                             d_key <= tot;                               // ...salvando il valore di tot nella chiave
                         end
                     end
@@ -218,13 +213,13 @@ module KeyManager(
             if(add_one) begin
                 case(position)
                     4'd0 :  begin
-                        if(value == 4'd9) begin
-                            value <= 'b0;
-                            tot <= tot - 32'd9;
+                        if(value == 4'd9) begin    //se il valore attuale della i-esima cifra è 9
+                            value <= 'b0;          //la riporta a 0
+                            tot <= tot - 32'd9;    //e toglie 9*10^(i-1) dal totale
                         end
-                        else begin
-                            value <= value + 4'd1;
-                            tot <= tot + 32'd1;
+                        else begin                 //altrimenti
+                            value <= value + 4'd1; //aumenta di 1 il valore della cifra
+                            tot <= tot + 32'd1;    //e somma 10^(i-1) al totale
                         end
                     end
                     4'd1 :  begin
@@ -327,7 +322,7 @@ module KeyManager(
             end
             
         end
-        else begin
+        else begin            //se typing è basso resetta i registri dell'editing
             position <= 'b0;
             value <= 'b0;
             tot <= 'b0;
