@@ -19,22 +19,22 @@ module tb_LFSR32;
         forever #5 clk = ~clk;
     end
     
-    integer f;
+    //integer f;
     integer count = 0;
     
     always @(rng) begin
         if (en) begin
-            $fdisplay(f, "%d", rng);
+            //$fdisplay(f, "%d", rng);
             count = count + 1;
         end
-        if (rng == 32'b11010100101001010110101010101101 && count > 10 | count == 1000000000) begin
-            $fclose(f);
+        if (((rng == 32'b11010100101001010110101010101101) && (count > 10)) || (count == 4294967295)) begin
+            //$fclose(f);
             $finish;
         end
     end
     
     initial begin
-        f = $fopen("/home/michele/rsa/bin/rng.txt");
+        //f = $fopen("/home/michele/rsa/bin/rng.txt");
         #105  rst = 1'b0;
         #100  en = 1'b1;
     end
